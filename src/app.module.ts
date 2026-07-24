@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { IConfigService, validateEnvSchema } from './common/config/env';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { YoutubeModule } from './youtube/youtube.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         autoLoadEntities: true,
       }),
     }),
+    YoutubeModule,
   ],
   controllers: [],
   providers: [],
