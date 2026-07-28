@@ -14,6 +14,12 @@ const envSchema = z.object({
   SQL_USER: z.string().default('root'),
   SQL_PWD: z.string().default(''),
   SQL_DB: z.string().nonempty(),
+
+  // YOUTUBE
+  YOUTUBE_API_KEY: z.string().nonempty(),
+  YOUTUBE_API_BASE_URL: z
+    .string()
+    .default('https://youtube.googleapis.com/youtube/v3'),
 });
 
 /**
