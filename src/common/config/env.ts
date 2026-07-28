@@ -47,7 +47,7 @@ export type EnvironmentVariables = z.infer<typeof envSchema>;
 /**
  * Config service interface from zod schema.
  */
-export type IConfigService = ConfigService<EnvironmentVariables, true>;
+export type AppConfigService = ConfigService<EnvironmentVariables, true>;
 
 /**
  * Extend nodejs process env types with zod schema.

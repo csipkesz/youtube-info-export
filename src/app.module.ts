@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { IConfigService, validateEnvSchema } from './common/config/env';
+import { AppConfigService, validateEnvSchema } from './common/config/env';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { YoutubeModule } from './youtube/youtube.module';
 
@@ -14,7 +14,7 @@ import { YoutubeModule } from './youtube/youtube.module';
     }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (configService: IConfigService) => ({
+      useFactory: (configService: AppConfigService) => ({
         type: 'mysql',
         host: configService.get('SQL_HOST', { infer: true }),
         port: configService.get('SQL_PORT', { infer: true }),
