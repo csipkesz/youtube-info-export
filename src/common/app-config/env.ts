@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { ConfigService } from '@nestjs/config';
 
 /**
  * Define ENV schema with validation and default values.
@@ -43,11 +42,6 @@ export function validateEnvSchema(config: Record<string, any>) {
  * Get config type from zod schema.
  */
 export type EnvironmentVariables = z.infer<typeof envSchema>;
-
-/**
- * Config service interface from zod schema.
- */
-export type AppConfigService = ConfigService<EnvironmentVariables, true>;
 
 /**
  * Extend nodejs process env types with zod schema.

@@ -2,7 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';
-import { type AppConfigService } from '../../common/config/env';
+import { AppConfigService } from '../../common/app-config/app-config.service';
 
 @Injectable()
 export class YoutubeApiService implements OnModuleInit {
@@ -11,12 +11,12 @@ export class YoutubeApiService implements OnModuleInit {
 
   constructor(
     private readonly httpService: HttpService,
-    private readonly configService: AppConfigService,
+    private readonly appConfig: AppConfigService,
   ) {}
 
   onModuleInit() {
-    this.baseUrl = this.configService.get('YOUTUBE_API_BASE_URL');
-    this.apiKey = this.configService.get('YOUTUBE_API_KEY');
+    this.baseUrl = this.appConfig.get('YOUTUBE_API_BASE_URL');
+    this.apiKey = this.appConfig.get('YOUTUBE_API_KEY');
   }
 
   async request<T>(options: {
