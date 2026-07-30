@@ -1,4 +1,4 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { YoutubeApiService } from './api/youtube-api.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { YoutubeChannel } from './entities/youtube-channel.entity';
@@ -7,7 +7,7 @@ import { YoutubeVideo } from './entities/youtube-video.entity';
 import { YoutubeApiPlaylistVideoSnippet } from './api/interfaces/youtube-api-playlist-video.interface';
 
 @Injectable()
-export class YoutubeChannelService implements OnModuleInit {
+export class YoutubeChannelService {
   constructor(
     private readonly youtubeApi: YoutubeApiService,
     @InjectRepository(YoutubeChannel)
@@ -15,12 +15,6 @@ export class YoutubeChannelService implements OnModuleInit {
     @InjectRepository(YoutubeVideo)
     private readonly youtubeVideoRepo: Repository<YoutubeVideo>,
   ) {}
-
-  async onModuleInit() {
-    // await this.youtubeChannelRepo.deleteAll();
-    // console.log('Deleted all channels');
-    // await this.syncChannel({ externalChannelId: 'UCejqyGXi812VAJK5emU3OqQ' });
-  }
 
   /**
    * Synchronizes a channel and its videos by its external ID. If the channel doesn't exist, it will be created.
