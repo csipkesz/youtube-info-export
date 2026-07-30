@@ -31,12 +31,46 @@ export class YoutubeChannelService implements OnModuleInit {
     const { externalChannelId } = options;
 
     const channel = await this.findChannel(externalChannelId);
-    const videos = await this.fetchChannelVideos(channel);
+    const videos = await this.syncChannelVideos(channel);
 
     return {
       channel,
       videos,
     };
+  }
+
+  /**
+   * Iterate through channel videos from db.
+   * @param externalChannelId The external ID of the channel whose videos to iterate through.
+   * @param onBatch The callback function to call for each batch of videos. If it returns false, the iteration will stop.
+   */
+  async iterateChannelVideos(
+    externalChannelId: string,
+    onBatch: (videos: YoutubeVideo[]) => Promise<boolean | void>,
+  ) {
+    let numberOfSkip = 0;
+    let whileCount = 0;
+    const channel = await this.findChannel(externalChannelId);
+
+    while (++whileCount < 1000) {
+      const batch = await this.youtubeVideoRepo.find({
+        where: { youtubeChannelId: channel.id },
+        order: { publishedAt: 'ASC' },
+        skip: numberOfSkip,
+        take: 50,
+      });
+
+      if (!batch.length) {
+        break;
+      }
+
+      const shouldContinue = await onBatch(batch);
+      if (shouldContinue === false) {
+        break;
+      }
+
+      numberOfSkip += batch.length;
+    }
   }
 
   /**
@@ -75,7 +109,7 @@ export class YoutubeChannelService implements OnModuleInit {
    * @param options Optional parameters, including forceAll to fetch all videos regardless of existing ones.
    * @returns An array of YoutubeVideo entities that were upserted.
    */
-  private async fetchChannelVideos(
+  private async syncChannelVideos(
     channel: YoutubeChannel,
     options: { forceAll?: boolean } = {},
   ) {
