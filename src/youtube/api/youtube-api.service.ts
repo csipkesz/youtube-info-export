@@ -1,20 +1,19 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { AppConfigService } from '../../common/app-config/app-config.service';
+import { YoutubeApiChannelList } from './interfaces/youtube-api-channel.interface';
 
 @Injectable()
-export class YoutubeApiService implements OnModuleInit {
-  private baseUrl: string;
-  private apiKey: string;
+export class YoutubeApiService {
+  private readonly baseUrl: string;
+  private readonly apiKey: string;
 
   constructor(
     private readonly httpService: HttpService,
     private readonly appConfig: AppConfigService,
-  ) {}
-
-  onModuleInit() {
+  ) {
     this.baseUrl = this.appConfig.get('YOUTUBE_API_BASE_URL');
     this.apiKey = this.appConfig.get('YOUTUBE_API_KEY');
   }
@@ -45,4 +44,31 @@ export class YoutubeApiService implements OnModuleInit {
       throw new Error('Youtube API Error', { cause: e });
     }
   }
+
+  async getChannel(channelId: string) {
+    const result = await this.request<YoutubeApiChannelList>({
+      method: 'GET',
+      path: 'channels',
+      query: {
+        part: 'snippet,contentDetails',
+        id: channelId,
+      },
+    });
+
+    if (result.pageInfo.totalResults == 0) {
+      return null;
+    }
+
+    const channel = result.items.find((item) => item.id === channelId);
+    if (!channel) {
+      return null;
+    }
+
+    return {
+      channel,
+      uploadsPlaylistId: channel.contentDetails?.relatedPlaylists?.uploads,
+    };
+  }
+
+  async getPlaylistItems(playlistId: string, options: {}) {}
 }
