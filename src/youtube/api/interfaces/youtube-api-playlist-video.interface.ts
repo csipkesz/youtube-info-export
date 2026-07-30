@@ -1,6 +1,6 @@
 import { YoutubeApiList } from './youtube-api-list.interface';
 
-interface YoutubeApiPlaylistVideoSnippet {
+export interface YoutubeApiPlaylistVideoSnippet {
   publishedAt: string;
   channelId: string;
   title: string;

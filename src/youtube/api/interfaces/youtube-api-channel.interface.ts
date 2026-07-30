@@ -1,6 +1,6 @@
 import { YoutubeApiList } from './youtube-api-list.interface';
 
-interface YoutubeApiChannelSnippet {
+export interface YoutubeApiChannelSnippet {
   title: string;
   description: string;
   customUrl?: string;
@@ -17,7 +17,7 @@ interface YoutubeApiChannelSnippet {
   >;
 }
 
-interface YoutubeApiChannelContentDetails {
+export interface YoutubeApiChannelContentDetails {
   relatedPlaylists: {
     uploads: string;
   };

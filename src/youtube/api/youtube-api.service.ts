@@ -4,6 +4,7 @@ import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';
 import { AppConfigService } from '../../common/app-config/app-config.service';
 import { YoutubeApiChannelList } from './interfaces/youtube-api-channel.interface';
+import { YoutubeApiPlaylistVideoList } from './interfaces/youtube-api-playlist-video.interface';
 
 @Injectable()
 export class YoutubeApiService {
@@ -21,7 +22,7 @@ export class YoutubeApiService {
   async request<T>(options: {
     method: AxiosRequestConfig['method'];
     path: string;
-    query?: Record<string, string | number | boolean | string[]>;
+    query?: Record<string, string | number | boolean | string[] | undefined>;
     body?: Record<string, any>;
   }) {
     const url = `${this.baseUrl}/${options.path}`;
@@ -70,5 +71,26 @@ export class YoutubeApiService {
     };
   }
 
-  async getPlaylistItems(playlistId: string, options: {}) {}
+  async getPlaylistVideos(
+    playlistId: string,
+    options: { pageToken?: string; maxResults?: number } = {},
+  ) {
+    const { pageToken, maxResults } = options;
+
+    const result = await this.request<YoutubeApiPlaylistVideoList>({
+      method: 'GET',
+      path: 'playlistItems',
+      query: {
+        part: 'snippet',
+        playlistId,
+        maxResults: maxResults || 50,
+        pageToken,
+      },
+    });
+
+    return {
+      videos: result.items.map((item) => item.snippet),
+      nextPageToken: result.nextPageToken,
+    };
+  }
 }
