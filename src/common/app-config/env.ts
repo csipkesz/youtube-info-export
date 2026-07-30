@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { ConfigService } from '@nestjs/config';
 
 /**
  * Define ENV schema with validation and default values.
@@ -14,6 +13,12 @@ const envSchema = z.object({
   SQL_USER: z.string().default('root'),
   SQL_PWD: z.string().default(''),
   SQL_DB: z.string().nonempty(),
+
+  // YOUTUBE
+  YOUTUBE_API_KEY: z.string().nonempty(),
+  YOUTUBE_API_BASE_URL: z
+    .string()
+    .default('https://youtube.googleapis.com/youtube/v3'),
 });
 
 /**
@@ -37,11 +42,6 @@ export function validateEnvSchema(config: Record<string, any>) {
  * Get config type from zod schema.
  */
 export type EnvironmentVariables = z.infer<typeof envSchema>;
-
-/**
- * Config service interface from zod schema.
- */
-export type IConfigService = ConfigService<EnvironmentVariables, true>;
 
 /**
  * Extend nodejs process env types with zod schema.

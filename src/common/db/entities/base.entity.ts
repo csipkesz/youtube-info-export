@@ -2,7 +2,6 @@ import {
   Column,
   CreateDateColumn,
   DeleteDateColumn,
-  Generated,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -11,8 +10,7 @@ export abstract class BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Generated('increment')
-  @Column({ unique: true })
+  @Column({ unique: true, generated: 'increment' })
   seq: number;
 
   @CreateDateColumn()

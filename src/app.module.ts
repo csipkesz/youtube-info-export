@@ -1,29 +1,26 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { IConfigService, validateEnvSchema } from './common/config/env';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { YoutubeModule } from './youtube/youtube.module';
+import { AppConfigModule } from './common/app-config/app-config.module';
+import { AppConfigService } from './common/app-config/app-config.service';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      validate: (config) => {
-        return validateEnvSchema(config);
-      },
-    }),
+    AppConfigModule,
     TypeOrmModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (configService: IConfigService) => ({
+      inject: [AppConfigService],
+      useFactory: (appConfig: AppConfigService) => ({
         type: 'mysql',
-        host: configService.get('SQL_HOST', { infer: true }),
-        port: configService.get('SQL_PORT', { infer: true }),
-        username: configService.get('SQL_USER', { infer: true }),
-        password: configService.get('SQL_PWD', { infer: true }),
-        database: configService.get('SQL_DB', { infer: true }),
+        host: appConfig.get('SQL_HOST'),
+        port: appConfig.get('SQL_PORT'),
+        username: appConfig.get('SQL_USER'),
+        password: appConfig.get('SQL_PWD'),
+        database: appConfig.get('SQL_DB'),
         synchronize: true,
         autoLoadEntities: true,
       }),
     }),
+    YoutubeModule,
   ],
   controllers: [],
   providers: [],
