@@ -1,10 +1,11 @@
-import { Column, Entity } from 'typeorm';
+import { Column, Entity, Index } from 'typeorm';
 import { BaseEntity } from '../../common/db/entities/base.entity';
 
 @Entity()
 export class YoutubeChannel extends BaseEntity {
+  @Index()
   @Column({ unique: true })
-  internalId: string;
+  channelId: string;
 
   @Column()
   name: string;

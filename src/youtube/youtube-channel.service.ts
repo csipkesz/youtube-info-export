@@ -1,44 +1,55 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { YoutubeApiService } from './api/youtube-api.service';
+import { InjectRepository } from '@nestjs/typeorm';
+import { YoutubeChannel } from './entities/youtube-channel.entity';
+import { Repository } from 'typeorm';
 
 @Injectable()
 export class YoutubeChannelService implements OnModuleInit {
-  constructor(readonly youtubeApiService: YoutubeApiService) {}
+  constructor(
+    private readonly youtubeApi: YoutubeApiService,
+    @InjectRepository(YoutubeChannel)
+    private readonly youtubeChannelRepo: Repository<YoutubeChannel>,
+  ) {}
 
   async onModuleInit() {
-    const channel = await this.youtubeApiService.getChannel(
-      'UCejqyGXi812VAJK5emU3OqQ',
-    );
+    // await this.youtubeChannelRepo.deleteAll();
+    // console.log('Deleted all channels');
 
-    console.log(
-      `fetched channel: ${channel?.channel.snippet.title} | uploads: ${channel?.uploadsPlaylistId}`,
-    );
+    await this.syncChannel({ channelId: 'UCejqyGXi812VAJK5emU3OqQ' });
+  }
 
-    const playlistId = channel?.uploadsPlaylistId;
-    if (!playlistId) {
-      console.error('No uploads playlist id');
-      return;
+  async syncChannel(options: { channelId: string }) {
+    const { channelId } = options;
+
+    const channel = await this.findChannel(channelId);
+    console.log(`Syncing channel: ${channel.name}`);
+  }
+
+  // TODO: Upsert logic with updated date ttl
+  private async findChannel(channelId: string) {
+    const existingChannel = await this.youtubeChannelRepo.findOne({
+      where: { channelId },
+    });
+
+    if (existingChannel) {
+      console.log(`Channel already exists: ${existingChannel.name}`);
+      return existingChannel;
     }
 
-    const videos = await this.youtubeApiService.getPlaylistVideos(playlistId);
-    console.log(
-      `fetched ${videos.videos.length} videos, first: ${videos.videos[0].title}`,
-    );
+    const channelResult = await this.youtubeApi.getChannel(channelId);
 
-    if (videos.nextPageToken) {
-      console.log(
-        `Has next page token: ${videos.nextPageToken}, continue fetching...`,
-      );
-
-      const nextVideos = await this.youtubeApiService.getPlaylistVideos(
-        playlistId,
-        {
-          pageToken: videos.nextPageToken,
-        },
-      );
-      console.log(
-        `fetched ${nextVideos.videos.length} videos, last: ${nextVideos.videos[0].title}`,
-      );
+    if (!channelResult) {
+      throw new Error('Channel not found');
     }
+
+    const newChannel = this.youtubeChannelRepo.create({
+      channelId: channelResult.channel.id,
+      name: channelResult.channel.snippet.title,
+      customUrl: channelResult.channel.snippet.customUrl,
+      uploadsId: channelResult.uploadsPlaylistId,
+    });
+
+    return await this.youtubeChannelRepo.save(newChannel);
   }
 }
