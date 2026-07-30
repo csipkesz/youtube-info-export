@@ -5,7 +5,7 @@ import { BaseEntity } from '../../common/db/entities/base.entity';
 export class YoutubeChannel extends BaseEntity {
   @Index()
   @Column({ unique: true })
-  channelId: string;
+  externalId: string;
 
   @Column()
   name: string;
