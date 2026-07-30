@@ -12,5 +12,6 @@ import { YoutubeChannelService } from './youtube-channel.service';
     HttpModule,
   ],
   providers: [YoutubeApiService, YoutubeChannelService],
+  exports: [YoutubeChannelService],
 })
 export class YoutubeModule {}
