@@ -33,6 +33,7 @@ export class FilmbaratokContent extends BaseEntity {
 
   @ManyToMany(() => FilmbaratokPerson, (person) => person.contents, {
     orphanedRowAction: 'delete',
+    onDelete: 'CASCADE',
   })
   @JoinTable()
   participants: FilmbaratokPerson[];
@@ -40,9 +41,10 @@ export class FilmbaratokContent extends BaseEntity {
   // It maybe can be one to many, but prepare when need to connect one media to more content
   @ManyToMany(() => FilmbaratokMedia, (media) => media.contents, {
     orphanedRowAction: 'delete',
+    onDelete: 'CASCADE',
   })
   @JoinTable()
-  media: FilmbaratokMedia[];
+  medias: FilmbaratokMedia[];
 
   get youtubeUrl() {
     return `https://www.youtube.com/watch?v=${this.youtubeId}`;

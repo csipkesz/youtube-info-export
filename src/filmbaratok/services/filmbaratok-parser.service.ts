@@ -7,12 +7,14 @@ import { In, Repository } from 'typeorm';
 import { plainToInstance } from 'class-transformer';
 import { FilmbaratokContentTopic } from '../entities/columns/filmbaratok-content-topic.column';
 import { FilmbaratokPerson } from '../entities/filmbaratok-person.entity';
+import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
 
 const NON_MEDIA_TOPICS = [
   'Felvezetés',
   'Borítókép',
   'Nép akarata',
   'Villámkérdés',
+  'Oscar jelöltek',
 ];
 
 @Injectable()
@@ -25,6 +27,8 @@ export class FilmbaratokParserService implements OnModuleInit {
     private readonly contentRepo: Repository<FilmbaratokContent>,
     @InjectRepository(FilmbaratokPerson)
     private readonly personRepo: Repository<FilmbaratokPerson>,
+    @InjectRepository(FilmbaratokMedia)
+    private readonly mediaRepo: Repository<FilmbaratokMedia>,
   ) {}
 
   onModuleInit() {
@@ -106,6 +110,10 @@ export class FilmbaratokParserService implements OnModuleInit {
         contentEntity.topics = this.extractTopics(descriptionLines, {
           ytVideoId: video.resourceVideoId,
         });
+
+        contentEntity.medias = await this.processTopicsWithMedia(
+          contentEntity.topics || [],
+        );
 
         // Handle new persons and add to participants
         const personNames = this.extractPodcastPersons(descriptionLines, {
@@ -219,6 +227,39 @@ export class FilmbaratokParserService implements OnModuleInit {
       .split(',')
       .map((name) => name.trim())
       .filter(Boolean);
+  }
+
+  async processTopicsWithMedia(topics: FilmbaratokContentTopic[]) {
+    if (!topics.length) {
+      return [];
+    }
+
+    // TODO IN FUTURE: Remove spoileres, (spoilers), X. évad, (X. évad) etc.
+    const topicNamesWithMedia = topics.filter(
+      (topic) =>
+        !NON_MEDIA_TOPICS.some((t) =>
+          topic.name.toLowerCase().includes(t.toLowerCase()),
+        ),
+    );
+
+    const existingMediaIds = await this.mediaRepo.find({
+      select: { id: true, title: true },
+      where: { title: In(topicNamesWithMedia.map((t) => t.name)) },
+    });
+    const existingMediaIdMap: Map<string, string> = new Map(
+      existingMediaIds.map((e) => [e.title, e.id]),
+    );
+    const mediaEntities: FilmbaratokMedia[] = topicNamesWithMedia.map(
+      (topic) => {
+        const existingId = existingMediaIdMap.get(topic.name);
+        return this.mediaRepo.create({
+          title: topic.name,
+          id: existingId,
+        });
+      },
+    );
+
+    return await this.mediaRepo.save(mediaEntities);
   }
 }
 
