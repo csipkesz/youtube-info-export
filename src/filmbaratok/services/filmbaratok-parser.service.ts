@@ -8,6 +8,7 @@ import { plainToInstance } from 'class-transformer';
 import { FilmbaratokContentTopic } from '../entities/columns/filmbaratok-content-topic.column';
 import { FilmbaratokPerson } from '../entities/filmbaratok-person.entity';
 import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
+import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
 
 const NON_MEDIA_TOPICS = [
   'Felvezetés',
@@ -15,6 +16,26 @@ const NON_MEDIA_TOPICS = [
   'Nép akarata',
   'Villámkérdés',
   'Oscar jelöltek',
+];
+
+const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
+  {
+    pattern: /Filmb[aá]r[aá]tok\s+Expressz/i,
+    category: FilmbaratokCategory.EXPRESS,
+  },
+  {
+    pattern: /Filmbarátok\s+audiokommentár/i,
+    category: FilmbaratokCategory.AUDIO_COMMENTARY,
+  },
+  {
+    pattern: /Filmbarátok\s+z[aá]rt/i,
+    category: FilmbaratokCategory.ON_SITE,
+  },
+  { pattern: /Filmbarátok\s+játszanak/i, category: FilmbaratokCategory.GAME },
+  {
+    pattern: /Filmbarátok\s+Podcast\s+#\d+/i,
+    category: FilmbaratokCategory.PODCAST,
+  },
 ];
 
 @Injectable()
@@ -60,6 +81,39 @@ export class FilmbaratokParserService implements OnModuleInit {
     );
   }
 
+  async processTopicsWithMedia(topics: FilmbaratokContentTopic[]) {
+    if (!topics.length) {
+      return [];
+    }
+
+    // TODO IN FUTURE: Remove spoileres, (spoilers), X. évad, (X. évad) etc.
+    const topicNamesWithMedia = topics.filter(
+      (topic) =>
+        !NON_MEDIA_TOPICS.some((t) =>
+          topic.name.toLowerCase().includes(t.toLowerCase()),
+        ),
+    );
+
+    const existingMediaIds = await this.mediaRepo.find({
+      select: { id: true, title: true },
+      where: { title: In(topicNamesWithMedia.map((t) => t.name)) },
+    });
+    const existingMediaIdMap: Map<string, string> = new Map(
+      existingMediaIds.map((e) => [e.title.toLowerCase(), e.id]),
+    );
+    const mediaEntities: FilmbaratokMedia[] = topicNamesWithMedia.map(
+      (topic) => {
+        const existingId = existingMediaIdMap.get(topic.name.toLowerCase());
+        return this.mediaRepo.create({
+          title: topic.name,
+          id: existingId,
+        });
+      },
+    );
+
+    return await this.mediaRepo.save(mediaEntities);
+  }
+
   private async parseVideosToDb(youtubeVideos: YoutubeVideo[]) {
     if (!youtubeVideos.length) {
       return;
@@ -86,11 +140,16 @@ export class FilmbaratokParserService implements OnModuleInit {
       );
 
       for (const video of batch) {
+        const category =
+          CATEGORY_RULES.find((rule) => rule.pattern.test(video.title))
+            ?.category || FilmbaratokCategory.OTHER;
+
         const contentEntity = this.contentRepo.create({
           title: video.title,
           releaseDate: video.publishedAt,
           youtubeId: video.resourceVideoId,
           thumbnailUrl: video.getThumbnailUrl('maxresdefault'),
+          category,
         });
 
         const existingId = existingContentIdMap.get(video.resourceVideoId);
@@ -98,43 +157,48 @@ export class FilmbaratokParserService implements OnModuleInit {
           contentEntity.id = existingId;
         }
 
-        // Prepare description
-        const descriptionLines = video.description.split('\n').filter(Boolean);
-        console.log(descriptionLines);
+        if (contentEntity.category === FilmbaratokCategory.PODCAST) {
+          // Prepare description
+          const descriptionLines = video.description
+            .split('\n')
+            .filter(Boolean);
+          console.log(descriptionLines);
 
-        // Get data from header
-        const episodeHeader = this.extractEpisodeHeader(descriptionLines);
-        contentEntity.durationInMinutes = episodeHeader?.durationInMinutes || 0;
+          // Get data from header
+          const episodeHeader = this.extractEpisodeHeader(descriptionLines);
+          contentEntity.durationInMinutes =
+            episodeHeader?.durationInMinutes || 0;
 
-        // Get topics with time data
-        contentEntity.topics = this.extractTopics(descriptionLines, {
-          ytVideoId: video.resourceVideoId,
-        });
+          // Get topics with time data
+          contentEntity.topics = this.extractTopics(descriptionLines, {
+            ytVideoId: video.resourceVideoId,
+          });
 
-        contentEntity.medias = await this.processTopicsWithMedia(
-          contentEntity.topics || [],
-        );
+          contentEntity.medias = await this.processTopicsWithMedia(
+            contentEntity.topics || [],
+          );
 
-        // Handle new persons and add to participants
-        const personNames = this.extractPodcastPersons(descriptionLines, {
-          ytVideoId: video.resourceVideoId,
-        });
-        contentEntity.participants = await Promise.all(
-          personNames.map(async (name) => {
-            const existingPerson = personMap.get(name);
-            if (existingPerson) {
-              return existingPerson;
-            }
+          // Handle new persons and add to participants
+          const personNames = this.extractPodcastPersons(descriptionLines, {
+            ytVideoId: video.resourceVideoId,
+          });
+          contentEntity.participants = await Promise.all(
+            personNames.map(async (name) => {
+              const existingPerson = personMap.get(name);
+              if (existingPerson) {
+                return existingPerson;
+              }
 
-            const newPerson = this.personRepo.create({
-              name,
-            });
+              const newPerson = this.personRepo.create({
+                name,
+              });
 
-            await this.personRepo.save(newPerson);
-            personMap.set(name, newPerson);
-            return newPerson;
-          }),
-        );
+              await this.personRepo.save(newPerson);
+              personMap.set(name, newPerson);
+              return newPerson;
+            }),
+          );
+        }
 
         console.log(contentEntity);
         entities.push(contentEntity);
@@ -142,6 +206,7 @@ export class FilmbaratokParserService implements OnModuleInit {
 
       // Upsert is not working because the many to many handle only run on save...
       await this.contentRepo.save(entities);
+      console.log(`Entities ${entities.length} entries`);
     }
   }
 
@@ -227,39 +292,6 @@ export class FilmbaratokParserService implements OnModuleInit {
       .split(',')
       .map((name) => name.trim())
       .filter(Boolean);
-  }
-
-  async processTopicsWithMedia(topics: FilmbaratokContentTopic[]) {
-    if (!topics.length) {
-      return [];
-    }
-
-    // TODO IN FUTURE: Remove spoileres, (spoilers), X. évad, (X. évad) etc.
-    const topicNamesWithMedia = topics.filter(
-      (topic) =>
-        !NON_MEDIA_TOPICS.some((t) =>
-          topic.name.toLowerCase().includes(t.toLowerCase()),
-        ),
-    );
-
-    const existingMediaIds = await this.mediaRepo.find({
-      select: { id: true, title: true },
-      where: { title: In(topicNamesWithMedia.map((t) => t.name)) },
-    });
-    const existingMediaIdMap: Map<string, string> = new Map(
-      existingMediaIds.map((e) => [e.title, e.id]),
-    );
-    const mediaEntities: FilmbaratokMedia[] = topicNamesWithMedia.map(
-      (topic) => {
-        const existingId = existingMediaIdMap.get(topic.name);
-        return this.mediaRepo.create({
-          title: topic.name,
-          id: existingId,
-        });
-      },
-    );
-
-    return await this.mediaRepo.save(mediaEntities);
   }
 }
 

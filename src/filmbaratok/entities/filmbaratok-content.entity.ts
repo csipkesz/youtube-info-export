@@ -22,7 +22,7 @@ export class FilmbaratokContent extends BaseEntity {
   // @Column()
   // description: string;
 
-  @Column()
+  @Column({ default: 0 })
   durationInMinutes: number;
 
   @Column()
