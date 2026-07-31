@@ -3,6 +3,7 @@ import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
 import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
 import { FilmbaratokPerson } from './filmbaratok-person.entity';
 import { FilmbaratokMedia } from './filmbaratok-media.entity';
+import { FilmbaratokContentTopic } from './columns/filmbaratok-content-topic.column';
 
 @Entity()
 export class FilmbaratokContent extends BaseEntity {
@@ -12,20 +13,23 @@ export class FilmbaratokContent extends BaseEntity {
   @Column()
   title: string;
 
-  @Column()
+  @Column({ unique: true })
   youtubeId: string;
 
   @Column()
   thumbnailUrl: string;
 
-  @Column()
-  description: string;
+  // @Column()
+  // description: string;
 
   @Column()
   durationInMinutes: number;
 
   @Column()
   releaseDate: Date;
+
+  @Column({ type: 'simple-json', nullable: true })
+  topics: FilmbaratokContentTopic[] | null;
 
   @ManyToMany(() => FilmbaratokPerson, (person) => person.contents, {
     orphanedRowAction: 'delete',
