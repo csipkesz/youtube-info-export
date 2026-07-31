@@ -1,0 +1,46 @@
+import { BaseEntity } from '../../common/db/entities/base.entity';
+import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
+import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
+import { FilmbaratokPerson } from './filmbaratok-person.entity';
+import { FilmbaratokMedia } from './filmbaratok-media.entity';
+
+@Entity()
+export class FilmbaratokContent extends BaseEntity {
+  @Column({ type: 'enum', enum: FilmbaratokCategory })
+  category: FilmbaratokCategory;
+
+  @Column()
+  title: string;
+
+  @Column()
+  youtubeId: string;
+
+  @Column()
+  thumbnailUrl: string;
+
+  @Column()
+  description: string;
+
+  @Column()
+  durationInMinutes: number;
+
+  @Column()
+  releaseDate: Date;
+
+  @ManyToMany(() => FilmbaratokPerson, (person) => person.contents, {
+    orphanedRowAction: 'delete',
+  })
+  @JoinTable()
+  participants: FilmbaratokPerson[];
+
+  // It maybe can be one to many, but prepare when need to connect one media to more content
+  @ManyToMany(() => FilmbaratokMedia, (media) => media.contents, {
+    orphanedRowAction: 'delete',
+  })
+  @JoinTable()
+  media: FilmbaratokMedia[];
+
+  get youtubeUrl() {
+    return `https://www.youtube.com/watch?v=${this.youtubeId}`;
+  }
+}
