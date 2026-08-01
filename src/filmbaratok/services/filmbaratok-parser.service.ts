@@ -84,50 +84,35 @@ export class FilmbaratokParserService implements OnModuleInit {
   }
 
   async parseVideosFromDb() {
+    // At this time we have 623 video on channel. Don't need more complex optimization.
     await this.ytChannelService.iterateChannelVideos(
       this.youtubeChannelId,
       async (videos) => {
         await this.parseVideosToDb(videos);
       },
+      { numberOfBatches: 5000 },
     );
-  }
-
-  async processTopicsWithMedia(topics: FilmbaratokContentTopic[]) {
-    // TODO IN FUTURE: Remove spoileres, (spoilers), X. évad, (X. évad) etc.
-    const topicNamesWithMedia = topics.filter(
-      (topic) =>
-        !NON_MEDIA_TOPICS.some((t) =>
-          topic.name.toLowerCase().includes(t.toLowerCase()),
-        ),
-    );
-
-    if (!topicNamesWithMedia.length) {
-      return [];
-    }
-
-    const existingMediaIds = await this.mediaRepo.find({
-      select: { id: true, title: true },
-      where: { title: In(topicNamesWithMedia.map((t) => t.name)) },
-    });
-    const existingMediaIdMap: Map<string, string> = new Map(
-      existingMediaIds.map((e) => [e.title.toLowerCase(), e.id]),
-    );
-    const mediaEntities: FilmbaratokMedia[] = topicNamesWithMedia.map(
-      (topic) => {
-        const existingId = existingMediaIdMap.get(topic.name.toLowerCase());
-        return this.mediaRepo.create({
-          title: topic.name,
-          id: existingId,
-        });
-      },
-    );
-
-    return await this.mediaRepo.save(mediaEntities);
   }
 
   private async parseVideosToDb(youtubeVideos: YoutubeVideo[]) {
     if (!youtubeVideos.length) {
       return;
+    }
+
+    // We need to process podcasts first, because it contains the person list.
+    const podcasts: YoutubeVideo[] = [];
+    const nonPodcasts: YoutubeVideo[] = [];
+    const ytVideoFilmbaratokCategories: Map<string, FilmbaratokCategory> =
+      new Map();
+    for (const video of youtubeVideos) {
+      const category = this.getCategory(video.title);
+      ytVideoFilmbaratokCategories.set(video.resourceVideoId, category);
+
+      if (category === FilmbaratokCategory.PODCAST) {
+        podcasts.push(video);
+      } else {
+        nonPodcasts.push(video);
+      }
     }
 
     const batchNumber = 50;
@@ -136,8 +121,9 @@ export class FilmbaratokParserService implements OnModuleInit {
       existingPersons.map((person) => [person.name, person]),
     );
 
-    for (let i = 0; i < youtubeVideos.length; i += batchNumber) {
-      const batch = youtubeVideos.slice(i, i + batchNumber);
+    const allVideos = [...podcasts, ...nonPodcasts];
+    for (let i = 0; i < allVideos.length; i += batchNumber) {
+      const batch = allVideos.slice(i, i + batchNumber);
       const entities: FilmbaratokContent[] = [];
 
       // Load existing content entities by youtubeId to avoid duplicates
@@ -152,8 +138,8 @@ export class FilmbaratokParserService implements OnModuleInit {
 
       for (const video of batch) {
         const category =
-          CATEGORY_RULES.find((rule) => rule.pattern.test(video.title))
-            ?.category || FilmbaratokCategory.OTHER;
+          ytVideoFilmbaratokCategories.get(video.resourceVideoId) ||
+          FilmbaratokCategory.OTHER;
 
         const contentEntity = this.contentRepo.create({
           title: video.title,
@@ -221,6 +207,13 @@ export class FilmbaratokParserService implements OnModuleInit {
     }
   }
 
+  private getCategory(title: string): FilmbaratokCategory {
+    return (
+      CATEGORY_RULES.find((rule) => rule.pattern.test(title))?.category ||
+      FilmbaratokCategory.OTHER
+    );
+  }
+
   private extractEpisodeHeader(lines: string[]) {
     const headerLine = lines.find((line) =>
       line.includes('Filmbarátok Podcast #'),
@@ -238,6 +231,39 @@ export class FilmbaratokParserService implements OnModuleInit {
       episodeNumber: Number(match[1]),
       durationInMinutes: Number(match[2]),
     };
+  }
+
+  private async processTopicsWithMedia(topics: FilmbaratokContentTopic[]) {
+    // TODO IN FUTURE: Remove spoileres, (spoilers), X. évad, (X. évad) etc.
+    const topicNamesWithMedia = topics.filter(
+      (topic) =>
+        !NON_MEDIA_TOPICS.some((t) =>
+          topic.name.toLowerCase().includes(t.toLowerCase()),
+        ),
+    );
+
+    if (!topicNamesWithMedia.length) {
+      return [];
+    }
+
+    const existingMediaIds = await this.mediaRepo.find({
+      select: { id: true, title: true },
+      where: { title: In(topicNamesWithMedia.map((t) => t.name)) },
+    });
+    const existingMediaIdMap: Map<string, string> = new Map(
+      existingMediaIds.map((e) => [e.title.toLowerCase(), e.id]),
+    );
+    const mediaEntities: FilmbaratokMedia[] = topicNamesWithMedia.map(
+      (topic) => {
+        const existingId = existingMediaIdMap.get(topic.name.toLowerCase());
+        return this.mediaRepo.create({
+          title: topic.name,
+          id: existingId,
+        });
+      },
+    );
+
+    return await this.mediaRepo.save(mediaEntities);
   }
 
   private extractTopics(lines: string[], context?: { ytVideoId?: string }) {
