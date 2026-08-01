@@ -18,6 +18,17 @@ const NON_MEDIA_TOPICS = [
   'Oscar jelöltek',
 ];
 
+const KNOWN_PERSON_NAMES = [
+  'Gábor (Videodrome)',
+  'Madarász Isti',
+  'Szöllőskei Gábor',
+  'Gigor Attila',
+  'Hajdu Szabolcs',
+  'Schwechtje Mihály',
+  'Stöckert Gábor',
+  'Ódor Kristóf',
+];
+
 const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
   {
     pattern: /Filmb[aá]r[aá]tok\s+Expressz/i,
@@ -291,7 +302,66 @@ export class FilmbaratokParserService implements OnModuleInit {
     return namesText
       .split(',')
       .map((name) => name.trim())
-      .filter(Boolean);
+      .filter(Boolean)
+      .flatMap((raw) => this.splitPersonNameEntry(raw));
+  }
+
+  private resolveNamesFromText(text: string): string[] {
+    const sortedKnownNames = [...KNOWN_PERSON_NAMES].sort(
+      (a, b) => b.split(' ').length - a.split(' ').length,
+    );
+
+    const result: string[] = [];
+    let remaining = text.trim();
+
+    while (remaining.length > 0) {
+      const knownMatch = sortedKnownNames.find(
+        (known) => remaining === known || remaining.startsWith(known + ' '),
+      );
+
+      if (knownMatch) {
+        result.push(knownMatch);
+        remaining = remaining.slice(knownMatch.length).trim();
+        continue;
+      }
+
+      const parenNoteMatch = remaining.match(/^\([^)]*\)\s*/);
+      if (parenNoteMatch) {
+        remaining = remaining.slice(parenNoteMatch[0].length).trim();
+        continue;
+      }
+
+      const spaceIndex = remaining.indexOf(' ');
+      if (spaceIndex === -1) {
+        result.push(remaining);
+        remaining = '';
+      } else {
+        result.push(remaining.slice(0, spaceIndex));
+        remaining = remaining.slice(spaceIndex + 1).trim();
+      }
+    }
+
+    return result;
+  }
+
+  private splitPersonNameEntry(raw: string): string[] {
+    const name = raw.trim();
+
+    // "Name feat. Name" / "Name feat Name"
+    if (/\bfeat\.?\b/i.test(name)) {
+      return name
+        .split(/\s+feat\.?\s+/i)
+        .flatMap((part) => this.splitPersonNameEntry(part));
+    }
+
+    // "Name. Name" -> pont vessző helyett (typo)
+    if (/\.\s*[A-ZÁÉÍÓÖŐÚÜŰ]/.test(name)) {
+      return name
+        .split(/\.\s*(?=[A-ZÁÉÍÓÖŐÚÜŰ])/)
+        .flatMap((part) => this.splitPersonNameEntry(part));
+    }
+
+    return this.resolveNamesFromText(name);
   }
 }
 
