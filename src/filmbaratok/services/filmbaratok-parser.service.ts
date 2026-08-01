@@ -82,10 +82,6 @@ export class FilmbaratokParserService implements OnModuleInit {
   }
 
   async processTopicsWithMedia(topics: FilmbaratokContentTopic[]) {
-    if (!topics.length) {
-      return [];
-    }
-
     // TODO IN FUTURE: Remove spoileres, (spoilers), X. évad, (X. évad) etc.
     const topicNamesWithMedia = topics.filter(
       (topic) =>
@@ -93,6 +89,10 @@ export class FilmbaratokParserService implements OnModuleInit {
           topic.name.toLowerCase().includes(t.toLowerCase()),
         ),
     );
+
+    if (!topicNamesWithMedia.length) {
+      return [];
+    }
 
     const existingMediaIds = await this.mediaRepo.find({
       select: { id: true, title: true },
