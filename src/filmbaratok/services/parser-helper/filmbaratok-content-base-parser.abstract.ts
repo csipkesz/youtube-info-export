@@ -11,8 +11,25 @@ const NON_MEDIA_TOPICS = [
   'Nép akarata',
   'Villámkérdés',
   'Oscar jelöltek',
+  'Keresés',
+  'Rovat',
+  'Előbeszélgetés',
+  'Beszélgetés',
+  'Vendégünk',
+  'Évösszegz',
+  'Évösszegző',
+  'kérdőív',
+  'Cinefest',
+  'Franchise',
+  'Megosztás',
+  'Jubileumi adás',
+  'éves a Filmbarátok Podcast',
+  '. adást',
+  'Hallgatói kérdés',
+  'Vélemények bizonyos film',
+  'Rendezői tapasztalat',
+  'Kérdéseitekre válaszol',
 ];
-
 export interface FilmbaratokContentParserMaps {
   persons: Map<string, FilmbaratokPerson>;
 }
@@ -38,7 +55,6 @@ export abstract class FilmbaratokContentBaseParser {
   }
 
   protected async resolveMediasByTitles(titles: string[]) {
-    // TODO IN FUTURE: Remove spoileres, (spoilers), X. évad, (X. évad) etc.
     const mediaTitles = titles.filter(
       (title) =>
         !NON_MEDIA_TOPICS.some((t) =>
@@ -50,31 +66,30 @@ export abstract class FilmbaratokContentBaseParser {
       return [];
     }
 
-    // Get existing list of medias
-    const normalizedTitles = mediaTitles.map((t) => t.toLowerCase());
     const existingMedias = await this.mediaRepo
       .createQueryBuilder('media')
       .select(['media.id', 'media.title'])
-      .where('LOWER(media.title) IN (:...titles)', { titles: normalizedTitles })
+      .where('media.title IN (:...titles)', { titles: mediaTitles })
       .getMany();
-    const existingMediaIds = existingMedias.map((e) => ({
-      title: e.title,
-      id: e.id,
-    }));
 
     const existingMediaIdMap: Map<string, string> = new Map(
-      existingMediaIds.map((e) => [e.title.toLowerCase(), e.id]),
+      existingMedias.map((e) => [this.normalizeMediaKey(e.title), e.id]),
     );
 
     const mediaEntities: FilmbaratokMedia[] = mediaTitles.map((title) => {
-      const existingId = existingMediaIdMap.get(title.toLowerCase());
-      return this.mediaRepo.create({
-        title,
-        id: existingId,
-      });
+      const existingId = existingMediaIdMap.get(this.normalizeMediaKey(title));
+      return this.mediaRepo.create({ title, id: existingId });
     });
 
     return await this.mediaRepo.save(mediaEntities);
+  }
+
+  private normalizeMediaKey(title: string): string {
+    return title
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, ''); // ékezetek eltávolítása
   }
 
   protected resolveDescriptionLines(descriptionLines: string): string[] {
