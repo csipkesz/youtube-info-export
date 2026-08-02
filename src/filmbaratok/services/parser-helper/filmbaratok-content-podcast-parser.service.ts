@@ -100,13 +100,33 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
     const topicLines: string[] = [];
     for (let i = themeIndex + 1; i < lines.length; i++) {
       const line = lines[i].trim();
-      if (!line.startsWith('-')) break;
-      topicLines.push(line);
+
+      if (line.startsWith('-')) {
+        topicLines.push(line);
+        continue;
+      }
+
+      if (
+        topicLines.length > 0 &&
+        this.hasUnbalancedOpenParen(topicLines[topicLines.length - 1])
+      ) {
+        // Az előző sor nyitott zárójellel végződött -> ez valószínűleg annak folytatása
+        topicLines[topicLines.length - 1] += ' ' + line;
+        continue;
+      }
+
+      break;
     }
 
     return topicLines
       .map((line) => this.parseTopicLine(line, context))
       .filter((topic): topic is FilmbaratokContentTopic => topic !== null);
+  }
+
+  private hasUnbalancedOpenParen(text: string): boolean {
+    const openCount = (text.match(/\(/g) ?? []).length;
+    const closeCount = (text.match(/\)/g) ?? []).length;
+    return openCount > closeCount;
   }
 
   private parseTopicLine(
