@@ -7,6 +7,8 @@ export class FilmbaratokPerson extends BaseEntity {
   @Column({ unique: true })
   name: string;
 
-  @ManyToMany(() => FilmbaratokContent, (content) => content.participants)
+  @ManyToMany(() => FilmbaratokContent, (content) => content.participants, {
+    onDelete: 'CASCADE',
+  })
   contents: FilmbaratokContent[];
 }

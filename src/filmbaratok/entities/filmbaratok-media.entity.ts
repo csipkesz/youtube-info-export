@@ -10,7 +10,9 @@ export class FilmbaratokMedia extends BaseEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   titleEn: string | null;
 
-  @ManyToMany(() => FilmbaratokContent, (content) => content.medias)
+  @ManyToMany(() => FilmbaratokContent, (content) => content.medias, {
+    onDelete: 'CASCADE',
+  })
   contents: FilmbaratokContent[];
 
   // TODO AFTER MOVIE DB: Thumbnail, description, release date, some link to imdb if possible
