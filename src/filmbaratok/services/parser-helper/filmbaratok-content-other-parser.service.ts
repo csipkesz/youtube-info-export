@@ -33,6 +33,59 @@ export class FilmbaratokContentOtherParserService extends FilmbaratokContentBase
       thumbnailUrl: youtubeVideo.getThumbnailUrl('maxresdefault'),
     } as Partial<FilmbaratokContent>);
 
+    const descriptionLines = this.resolveDescriptionLines(
+      youtubeVideo.description,
+    );
+
+    const mappedPersonNames: string[] = Array.from(maps.persons.keys());
+    const personNames = this.extractPersons(descriptionLines, {
+      ytVideoId: youtubeVideo.resourceVideoId,
+      knownPersonNames: mappedPersonNames,
+    });
+
+    const participants: FilmbaratokPerson[] = [];
+    for (const name of personNames) {
+      participants.push(await this.resolvePersonByName(name, maps.persons));
+    }
+
+    contentEntity.participants = participants;
+
     return contentEntity;
+  }
+
+  private extractPersons(
+    lines: string[],
+    options: { ytVideoId?: string; knownPersonNames: string[] },
+  ) {
+    const { ytVideoId, knownPersonNames } = options;
+    const fullText = lines.join('\n');
+
+    const sortedNames = [...knownPersonNames].sort(
+      (a, b) => b.length - a.length,
+    );
+
+    const foundNames: string[] = [];
+    let remainingText = fullText;
+
+    for (const name of sortedNames) {
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(
+        `(?<![\\p{L}\\p{N}])${escapedName}(?![\\p{L}\\p{N}])`,
+        'u',
+      );
+
+      if (pattern.test(remainingText)) {
+        foundNames.push(name);
+        remainingText = remainingText.replace(pattern, '');
+      }
+    }
+
+    if (!foundNames.length) {
+      console.warn(
+        `[extractPersons] No known person names found${ytVideoId ? ` (https://www.youtube.com/watch?v=${ytVideoId})` : ''}`,
+      );
+    }
+
+    return foundNames;
   }
 }
