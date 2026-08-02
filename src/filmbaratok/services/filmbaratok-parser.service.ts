@@ -102,7 +102,7 @@ export class FilmbaratokParserService implements OnModuleInit {
       existingPersons.map((person) => [person.name, person]),
     );
 
-    const allVideos = [...podcasts, ...nonPodcasts];
+    const allVideos = [...podcasts];
     for (let i = 0; i < allVideos.length; i += batchNumber) {
       const batch = allVideos.slice(i, i + batchNumber);
       const entities: FilmbaratokContent[] = [];

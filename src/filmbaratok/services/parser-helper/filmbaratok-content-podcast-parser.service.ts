@@ -97,7 +97,7 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
     );
     if (themeIndex === -1) {
       console.warn(
-        `[extractTopics] No "Téma" line found${context?.ytVideoId ? ` (video #${context.ytVideoId})` : ''}`,
+        `[extractTopics] No "Téma" line found${context?.ytVideoId ? ` (video ${context.ytVideoId})` : ''}`,
       );
       return [];
     }
@@ -109,25 +109,53 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
       topicLines.push(line);
     }
 
-    const topics = topicLines.map((line) => {
-      const match = line.match(/^-(.+?)\s*\((\d{1,2}:\d{2}(?::\d{2})?):?\)$/);
+    return topicLines
+      .map((line) => this.parseTopicLine(line, context))
+      .filter((topic): topic is FilmbaratokContentTopic => topic !== null);
+  }
 
-      if (!match) {
-        console.warn(
-          `[extractTopics] Could not parse topic line: "${line}"${context?.ytVideoId ? ` (episode #${context.ytVideoId})` : ''}`,
-        );
-        return null;
-      }
+  private parseTopicLine(
+    rawLine: string,
+    context?: { ytVideoId?: string },
+  ): FilmbaratokContentTopic | null {
+    const line = rawLine.replace(/^-\s*/, '').trim();
 
-      const [, title, timeText] = match;
+    if (!line) {
+      console.warn(
+        `[parseTopicLine] Empty topic line${context?.ytVideoId ? ` (episode ${context.ytVideoId})` : ''}`,
+      );
+      return null;
+    }
+
+    const timeMatch = line.match(/\d{1,2}:\d{2}(?::\d{2})?/);
+
+    if (!timeMatch) {
       return plainToInstance(FilmbaratokContentTopic, {
-        name: title.trim(),
-        timestampString: timeText,
-        timestampInSeconds: this.timeTextToSeconds(timeText),
+        name: line,
+        timestampString: null,
+        timestampInSeconds: null,
       });
-    });
+    }
 
-    return topics.filter((topic) => topic !== null);
+    const timeText = timeMatch[0];
+    const timeIndex = timeMatch.index as number;
+    const beforeTime = line.slice(0, timeIndex);
+
+    const lastBracketIndex = Math.max(
+      beforeTime.lastIndexOf('('),
+      beforeTime.lastIndexOf('['),
+    );
+    const title = (
+      lastBracketIndex !== -1
+        ? beforeTime.slice(0, lastBracketIndex)
+        : beforeTime
+    ).trim();
+
+    return plainToInstance(FilmbaratokContentTopic, {
+      name: title || line,
+      timestampString: timeText,
+      timestampInSeconds: this.timeTextToSeconds(timeText),
+    });
   }
 
   private extractPersons(
