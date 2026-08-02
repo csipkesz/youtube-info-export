@@ -9,7 +9,6 @@ import { Repository } from 'typeorm';
 import { FilmbaratokPerson } from 'src/filmbaratok/entities/filmbaratok-person.entity';
 import { YoutubeVideo } from '../../../youtube/entities/youtube-video.entity';
 import { FilmbaratokContent } from '../../entities/filmbaratok-content.entity';
-import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class FilmbaratokContentOtherParserService extends FilmbaratokContentBaseParser {
@@ -26,12 +25,7 @@ export class FilmbaratokContentOtherParserService extends FilmbaratokContentBase
     youtubeVideo: YoutubeVideo,
     maps: FilmbaratokContentParserMaps,
   ): Promise<FilmbaratokContent> {
-    const contentEntity = plainToInstance(FilmbaratokContent, {
-      title: youtubeVideo.title,
-      releaseDate: youtubeVideo.publishedAt,
-      youtubeId: youtubeVideo.resourceVideoId,
-      thumbnailUrl: youtubeVideo.getThumbnailUrl('maxresdefault'),
-    } as Partial<FilmbaratokContent>);
+    const contentEntity = this.initContentEntity(youtubeVideo);
 
     const descriptionLines = this.resolveDescriptionLines(
       youtubeVideo.description,

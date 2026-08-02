@@ -132,6 +132,8 @@ export class FilmbaratokParserService implements OnModuleInit {
           parsedContentEntity.id = existingId;
         }
 
+        parsedContentEntity.category = category;
+
         entities.push(parsedContentEntity);
       }
 

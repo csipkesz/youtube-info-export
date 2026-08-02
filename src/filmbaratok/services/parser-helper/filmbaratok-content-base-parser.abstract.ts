@@ -3,6 +3,7 @@ import { YoutubeVideo } from '../../../youtube/entities/youtube-video.entity';
 import { Repository } from 'typeorm';
 import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
+import { plainToInstance } from 'class-transformer';
 
 const NON_MEDIA_TOPICS = [
   'Felvezetés',
@@ -26,6 +27,15 @@ export abstract class FilmbaratokContentBaseParser {
     youtubeVideo: YoutubeVideo,
     maps: FilmbaratokContentParserMaps,
   ): Promise<FilmbaratokContent>;
+
+  protected initContentEntity(youtubeVideo: YoutubeVideo) {
+    return plainToInstance(FilmbaratokContent, {
+      title: youtubeVideo.title,
+      releaseDate: youtubeVideo.publishedAt,
+      youtubeId: youtubeVideo.resourceVideoId,
+      thumbnailUrl: youtubeVideo.getThumbnailUrl('hqdefault'),
+    });
+  }
 
   protected async resolveMediasByTitles(titles: string[]) {
     // TODO IN FUTURE: Remove spoileres, (spoilers), X. évad, (X. évad) etc.

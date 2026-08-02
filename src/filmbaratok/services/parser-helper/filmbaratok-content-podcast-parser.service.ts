@@ -38,12 +38,7 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
     video: YoutubeVideo,
     maps: FilmbaratokContentParserMaps,
   ): Promise<FilmbaratokContent> {
-    const contentEntity = plainToInstance(FilmbaratokContent, {
-      title: video.title,
-      releaseDate: video.publishedAt,
-      youtubeId: video.resourceVideoId,
-      thumbnailUrl: video.getThumbnailUrl('maxresdefault'),
-    } as Partial<FilmbaratokContent>);
+    const contentEntity = this.initContentEntity(video);
 
     const descriptionLines = this.resolveDescriptionLines(video.description);
 
