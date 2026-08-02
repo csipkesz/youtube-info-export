@@ -5,6 +5,8 @@ import { FilmbaratokMedia } from './entities/filmbaratok-media.entity';
 import { FilmbaratokPerson } from './entities/filmbaratok-person.entity';
 import { FilmbaratokParserService } from './services/filmbaratok-parser.service';
 import { YoutubeModule } from '../youtube/youtube.module';
+import { FilmbaratokParserHelperService } from './services/parser-helper/filmbaratok-parser-helper.service';
+import { FilmbaratokContentPodcastParserService } from './services/parser-helper/filmbaratok-content-podcast-parser.service';
 
 @Module({
   imports: [
@@ -15,6 +17,6 @@ import { YoutubeModule } from '../youtube/youtube.module';
     ]),
     YoutubeModule,
   ],
-  providers: [FilmbaratokParserService],
+  providers: [FilmbaratokParserService, FilmbaratokParserHelperService, FilmbaratokContentPodcastParserService],
 })
 export class FilmbaratokModule {}
