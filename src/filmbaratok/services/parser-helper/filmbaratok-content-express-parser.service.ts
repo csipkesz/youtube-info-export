@@ -23,12 +23,26 @@ export class FilmbaratokContentExpressParserService extends FilmbaratokContentBa
 
   async parse(
     youtubeVideo: YoutubeVideo,
-    _maps: FilmbaratokContentParserMaps,
+    maps: FilmbaratokContentParserMaps,
   ): Promise<FilmbaratokContent> {
     const contentEntity = this.initContentEntity(youtubeVideo);
 
     const mediaTitle = this.extractMediaTitle(youtubeVideo.title);
-    contentEntity.medias = await this.resolveMediasByTitles([mediaTitle]);
+    const medias = await this.resolveMediasByTitles([mediaTitle]);
+
+    const mappedPersonNames: string[] = Array.from(maps.persons.keys());
+    const personNames = this.resolvePersonNames(youtubeVideo.description, {
+      ytVideoId: youtubeVideo.resourceVideoId,
+      knownPersonNames: mappedPersonNames,
+    });
+
+    const participants: FilmbaratokPerson[] = [];
+    for (const name of personNames) {
+      participants.push(await this.resolvePersonByName(name, maps.persons));
+    }
+
+    contentEntity.participants = participants;
+    contentEntity.medias = medias;
 
     return contentEntity;
   }

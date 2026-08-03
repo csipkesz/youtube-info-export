@@ -114,6 +114,42 @@ export abstract class FilmbaratokContentBaseParser {
     return descriptionLines.split('\n').filter(Boolean);
   }
 
+  protected resolvePersonNames(
+    lines: string[] | string,
+    options: { ytVideoId?: string; knownPersonNames: string[] },
+  ) {
+    const { ytVideoId, knownPersonNames } = options;
+    const fullText = Array.isArray(lines) ? lines.join('\n') : lines;
+
+    const sortedNames = [...knownPersonNames].sort(
+      (a, b) => b.length - a.length,
+    );
+
+    const foundNames: string[] = [];
+    let remainingText = fullText;
+
+    for (const name of sortedNames) {
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const pattern = new RegExp(
+        `(?<![\\p{L}\\p{N}])${escapedName}(?![\\p{L}\\p{N}])`,
+        'u',
+      );
+
+      if (pattern.test(remainingText)) {
+        foundNames.push(name);
+        remainingText = remainingText.replace(pattern, '');
+      }
+    }
+
+    if (!foundNames.length) {
+      console.warn(
+        `[extractPersons] No known person names found${ytVideoId ? ` (https://www.youtube.com/watch?v=${ytVideoId})` : ''}`,
+      );
+    }
+
+    return foundNames;
+  }
+
   protected async resolvePersonByName(
     name: string,
     personMap: FilmbaratokContentParserMaps['persons'],
