@@ -35,8 +35,10 @@ const NON_MEDIA_TOPICS = [
   'Szavazás',
   'filmosztás',
   'hallgató',
-  'Oscar', // TODO: Kivétel: Oscar (1991)
+  'Oscar',
 ];
+
+const NON_MEDIA_TOPICS_EXCEPTION = ['Oscar (1991)'];
 
 export interface FilmbaratokContentParserMaps {
   persons: Map<string, FilmbaratokPerson>;
@@ -53,6 +55,12 @@ export abstract class FilmbaratokContentBaseParser {
     maps: FilmbaratokContentParserMaps,
   ): Promise<FilmbaratokContent>;
 
+  /**
+   * Initializes a FilmbaratokContent entity from a YoutubeVideo entity.
+   *
+   * @param youtubeVideo - The YoutubeVideo entity to initialize the FilmbaratokContent from.
+   * @returns A new instance of FilmbaratokContent with properties set based on the YoutubeVideo.
+   */
   protected initContentEntity(youtubeVideo: YoutubeVideo) {
     return plainToInstance(FilmbaratokContent, {
       title: youtubeVideo.title,
@@ -62,6 +70,12 @@ export abstract class FilmbaratokContentBaseParser {
     });
   }
 
+  /**
+   * Resolves the media title from a raw title string by removing any content within brackets or parentheses.
+   *
+   * @param rawTitle - The raw title string to resolve.
+   * @returns The resolved media title without any bracketed or parenthetical content.
+   */
   protected resolveMediaTitle(rawTitle: string): string {
     const firstBracketIndex = rawTitle.search(/[[(]/);
     const title =
@@ -72,13 +86,30 @@ export abstract class FilmbaratokContentBaseParser {
     return title.trim();
   }
 
+  /**
+   * Resolves media entities by their titles. If a media entity with the given title already exists in the database, it will be reused.
+   * Otherwise, a new media entity will be created and saved to the database.
+   * Filter out non media titles, but some titles has exception (like talking about Oscar gala, but there is a movie called "Oscar").
+   *
+   * @param titles - An array of media titles to resolve.
+   * @returns A promise that resolves to an array of FilmbaratokMedia entities.
+   */
   protected async resolveMediasByTitles(titles: string[]) {
-    const mediaTitles = titles.filter(
-      (title) =>
-        !NON_MEDIA_TOPICS.some((t) =>
-          title.toLowerCase().includes(t.toLowerCase()),
-        ),
-    );
+    const mediaTitles = titles.filter((title) => {
+      const normalizedTitle = title.toLowerCase();
+      const isNonMediaTitle = NON_MEDIA_TOPICS.some((t) =>
+        normalizedTitle.includes(t.toLowerCase()),
+      );
+
+      if (isNonMediaTitle) {
+        const isNonMediaTitleException = NON_MEDIA_TOPICS_EXCEPTION.some(
+          (t) => normalizedTitle === t.toLowerCase(),
+        );
+        return isNonMediaTitleException;
+      }
+
+      return true;
+    });
 
     if (!mediaTitles.length) {
       return [];
@@ -102,6 +133,15 @@ export abstract class FilmbaratokContentBaseParser {
     return await this.mediaRepo.save(mediaEntities);
   }
 
+  /**
+   * Normalizes a media title for consistent comparison and storage.
+   * The normalization process includes trimming whitespace, converting to lowercase,
+   * and removing diacritical marks (accents) from characters.
+   * Like fix Roma Róma or Dune Dűne
+   *
+   * @param title - The media title to normalize.
+   * @returns The normalized media title.
+   */
   private normalizeMediaKey(title: string): string {
     return title
       .trim()
@@ -110,10 +150,27 @@ export abstract class FilmbaratokContentBaseParser {
       .replace(/[\u0300-\u036f]/g, ''); // ékezetek eltávolítása
   }
 
+  /**
+   * Splits a description string into an array of non-empty lines.
+   *
+   * @param descriptionLines - The description string to split.
+   * @returns An array of non-empty lines from the description.
+   */
   protected resolveDescriptionLines(descriptionLines: string): string[] {
     return descriptionLines.split('\n').filter(Boolean);
   }
 
+  /**
+   * Resolves known person names from the provided lines of text.
+   * It searches for occurrences of known person names in the text and returns an array of found names.
+   * The search is case-sensitive and ensures that names are matched as whole words.
+   *
+   * @param lines - An array of strings or a single string containing the text to search.
+   * @param options - An object containing optional parameters:
+   *   - ytVideoId: (optional) The YouTube video ID for logging purposes.
+   *   - knownPersonNames: An array of known person names to search for in the text.
+   * @returns An array of found person names from the text.
+   */
   protected resolvePersonNames(
     lines: string[] | string,
     options: { ytVideoId?: string; knownPersonNames: string[] },
@@ -150,6 +207,14 @@ export abstract class FilmbaratokContentBaseParser {
     return foundNames;
   }
 
+  /**
+   * Resolves a person entity by name. If a person with the given name already exists in the provided person map, it will be returned.
+   * Otherwise, a new person entity will be created, saved to the database, and added to the person map.
+   *
+   * @param name - The name of the person to resolve.
+   * @param personMap - A map of existing person entities keyed by their names.
+   * @returns A promise that resolves to the FilmbaratokPerson entity corresponding to the given name.
+   */
   protected async resolvePersonByName(
     name: string,
     personMap: FilmbaratokContentParserMaps['persons'],
@@ -168,6 +233,12 @@ export abstract class FilmbaratokContentBaseParser {
     return newPerson;
   }
 
+  /**
+   * Converts a time string in the format "HH:MM:SS" or "MM:SS" to the total number of seconds.
+   *
+   * @param timeText - The time string to convert.
+   * @returns The total number of seconds represented by the time string.
+   */
   protected timeTextToSeconds(timeText: string): number {
     const parts = timeText.split(':').map(Number);
 

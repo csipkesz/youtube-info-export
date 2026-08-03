@@ -52,6 +52,7 @@ export class FilmbaratokContentExpressParserService extends FilmbaratokContentBa
       .replace(/^Filmb[aá]r[aá]tok\s+Expressz:?\s*/i, '')
       .trim();
 
+    // Temporary, in the future cut and get the other side to subtitle or something else.
     if (withoutPrefix.startsWith('The Walking Dead')) {
       return 'The Walking Dead';
     }

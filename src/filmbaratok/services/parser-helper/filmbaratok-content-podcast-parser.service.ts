@@ -67,6 +67,12 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
     return contentEntity;
   }
 
+  /**
+   * Extracts episode information such as episode number and duration from the provided lines of text.
+   *
+   * @param lines
+   * @private
+   */
   private extractEpisodeInfo(lines: string[]) {
     const headerLine = lines.find((line) =>
       line.includes('Filmbarátok Podcast #'),
@@ -86,6 +92,15 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
     };
   }
 
+  /**
+   * Extracts a list of topics from an array of lines, starting from the line containing the keyword "Téma".
+   * It processes the lines to ensure continuity for topics that span multiple lines and parses them into structured topics.
+   *
+   * @param {string[]} lines - The array of strings representing lines to parse for topics.
+   * @param {Object} [context] - Optional context object providing additional information.
+   * @param {string} [context.ytVideoId] - Optional YouTube video ID for context when logging warnings.
+   * @return {FilmbaratokContentTopic[]} An array of parsed topics, or an empty array if no topics are extracted.
+   */
   private extractTopics(lines: string[], context?: { ytVideoId?: string }) {
     const themeIndex = lines.findIndex((line) =>
       line.trim().startsWith('Téma'),
