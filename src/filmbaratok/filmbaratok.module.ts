@@ -9,6 +9,7 @@ import { FilmbaratokParserHelperService } from './services/parser-helper/filmbar
 import { FilmbaratokContentPodcastParserService } from './services/parser-helper/filmbaratok-content-podcast-parser.service';
 import { FilmbaratokContentOtherParserService } from './services/parser-helper/filmbaratok-content-other-parser.service';
 import { FilmbaratokContentExpressParserService } from './services/parser-helper/filmbaratok-content-express-parser.service';
+import { FilmbaratokContentAudioCommentaryParserService } from './services/parser-helper/filmbaratok-content-audio-commentary-parser.service';
 
 @Module({
   imports: [
@@ -19,6 +20,6 @@ import { FilmbaratokContentExpressParserService } from './services/parser-helper
     ]),
     YoutubeModule,
   ],
-  providers: [FilmbaratokParserService, FilmbaratokParserHelperService, FilmbaratokContentPodcastParserService, FilmbaratokContentOtherParserService, FilmbaratokContentExpressParserService],
+  providers: [FilmbaratokParserService, FilmbaratokParserHelperService, FilmbaratokContentPodcastParserService, FilmbaratokContentOtherParserService, FilmbaratokContentExpressParserService, FilmbaratokContentAudioCommentaryParserService],
 })
 export class FilmbaratokModule {}

@@ -29,7 +29,15 @@ const NON_MEDIA_TOPICS = [
   'Vélemények bizonyos film',
   'Rendezői tapasztalat',
   'Kérdéseitekre válaszol',
+  'filmgyűjtés mint szenvedély',
+  'Közönség',
+  'zárthelyi',
+  'Szavazás',
+  'filmosztás',
+  'hallgató',
+  'Oscar', // TODO: Kivétel: Oscar (1991)
 ];
+
 export interface FilmbaratokContentParserMaps {
   persons: Map<string, FilmbaratokPerson>;
 }
@@ -52,6 +60,16 @@ export abstract class FilmbaratokContentBaseParser {
       youtubeId: youtubeVideo.resourceVideoId,
       thumbnailUrl: youtubeVideo.getThumbnailUrl('hqdefault'),
     });
+  }
+
+  protected resolveMediaTitle(rawTitle: string): string {
+    const firstBracketIndex = rawTitle.search(/[[(]/);
+    const title =
+      firstBracketIndex !== -1
+        ? rawTitle.slice(0, firstBracketIndex)
+        : rawTitle;
+
+    return title.trim();
   }
 
   protected async resolveMediasByTitles(titles: string[]) {

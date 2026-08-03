@@ -11,7 +11,7 @@ import { YoutubeVideo } from '../../../youtube/entities/youtube-video.entity';
 import { FilmbaratokContent } from '../../entities/filmbaratok-content.entity';
 
 @Injectable()
-export class FilmbaratokContentExpressParserService extends FilmbaratokContentBaseParser {
+export class FilmbaratokContentAudioCommentaryParserService extends FilmbaratokContentBaseParser {
   constructor(
     @InjectRepository(FilmbaratokMedia)
     protected readonly mediaRepo: Repository<FilmbaratokMedia>,
@@ -35,12 +35,8 @@ export class FilmbaratokContentExpressParserService extends FilmbaratokContentBa
 
   private extractMediaTitle(rawTitle: string): string {
     const withoutPrefix = rawTitle
-      .replace(/^Filmb[aá]r[aá]tok\s+Expressz:?\s*/i, '')
+      .replace(/^Filmb[aá]r[aá]tok\s+audiokommentár\s*:?\s*/i, '')
       .trim();
-
-    if (withoutPrefix.startsWith('The Walking Dead')) {
-      return 'The Walking Dead';
-    }
 
     return this.resolveMediaTitle(withoutPrefix);
   }
