@@ -5,7 +5,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { FilmbaratokContent } from '../entities/filmbaratok-content.entity';
 import { In, Repository } from 'typeorm';
 import { FilmbaratokPerson } from '../entities/filmbaratok-person.entity';
-import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
 import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
 import { FilmbaratokParserHelperService } from './parser-helper/filmbaratok-parser-helper.service';
 
@@ -40,8 +39,6 @@ export class FilmbaratokParserService implements OnModuleInit {
     private readonly contentRepo: Repository<FilmbaratokContent>,
     @InjectRepository(FilmbaratokPerson)
     private readonly personRepo: Repository<FilmbaratokPerson>,
-    @InjectRepository(FilmbaratokMedia)
-    private readonly mediaRepo: Repository<FilmbaratokMedia>,
   ) {}
 
   onModuleInit() {
