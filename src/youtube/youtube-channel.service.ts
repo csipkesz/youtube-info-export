@@ -37,10 +37,12 @@ export class YoutubeChannelService {
    * Iterate through channel videos from db.
    * @param externalChannelId The external ID of the channel whose videos to iterate through.
    * @param onBatch The callback function to call for each batch of videos. If it returns false, the iteration will stop.
+   * @param options Optional parameters, including numberOfBatches to limit the number of batches to process.
    */
   async iterateChannelVideos(
     externalChannelId: string,
     onBatch: (videos: YoutubeVideo[]) => Promise<boolean | void>,
+    options: { numberOfBatches?: number } = {},
   ) {
     let numberOfSkip = 0;
     let whileCount = 0;
@@ -51,7 +53,7 @@ export class YoutubeChannelService {
         where: { youtubeChannelId: channel.id },
         order: { publishedAt: 'ASC' },
         skip: numberOfSkip,
-        take: 50,
+        take: options.numberOfBatches || 50,
       });
 
       if (!batch.length) {

@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { YoutubeModule } from './youtube/youtube.module';
 import { AppConfigModule } from './common/app-config/app-config.module';
 import { AppConfigService } from './common/app-config/app-config.service';
+import { FilmbaratokModule } from './filmbaratok/filmbaratok.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { AppConfigService } from './common/app-config/app-config.service';
       }),
     }),
     YoutubeModule,
+    FilmbaratokModule,
   ],
   controllers: [],
   providers: [],
