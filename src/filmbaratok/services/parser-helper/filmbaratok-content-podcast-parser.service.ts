@@ -12,6 +12,10 @@ import { plainToInstance } from 'class-transformer';
 import { FilmbaratokContentTopic } from '../../entities/columns/filmbaratok-content-topic.column';
 import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
 
+/**
+ * Persons have similar name but separated by some sign.
+ * Like: Gábor, Gábor (videodrom), Szöllőskei Gábor
+ */
 const KNOWN_PERSON_NAMES = [
   'Gábor (Videodrome)',
   'Madarász Isti',
