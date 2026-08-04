@@ -27,8 +27,7 @@ export class FilmbaratokContentExpressParserService extends FilmbaratokContentBa
   ): Promise<FilmbaratokContent> {
     const contentEntity = this.initContentEntity(youtubeVideo);
 
-    const mediaTitle = this.extractMediaTitle(youtubeVideo.title);
-    const medias = await this.resolveMediasByTitles([mediaTitle]);
+    const topicTitle = this.extractTopicTitle(youtubeVideo.title);
 
     const mappedPersonNames: string[] = Array.from(maps.persons.keys());
     const personNames = this.resolvePersonNames(youtubeVideo.description, {
@@ -42,21 +41,21 @@ export class FilmbaratokContentExpressParserService extends FilmbaratokContentBa
     }
 
     contentEntity.participants = participants;
-    contentEntity.medias = medias;
+    contentEntity.topics = await this.resolveTopicsByRawTitles([topicTitle]);
 
     return contentEntity;
   }
 
-  private extractMediaTitle(rawTitle: string): string {
+  private extractTopicTitle(rawTitle: string): string {
     const withoutPrefix = rawTitle
       .replace(/^Filmb[aá]r[aá]tok\s+Expressz:?\s*/i, '')
       .trim();
 
     // Temporary, in the future cut and get the other side to subtitle or something else.
-    if (withoutPrefix.startsWith('The Walking Dead')) {
-      return 'The Walking Dead';
-    }
+    // if (withoutPrefix.startsWith('The Walking Dead')) {
+    //   return 'The Walking Dead';
+    // }
 
-    return this.resolveMediaTitle(withoutPrefix);
+    return withoutPrefix;
   }
 }

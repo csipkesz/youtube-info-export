@@ -27,17 +27,17 @@ export class FilmbaratokContentAudioCommentaryParserService extends FilmbaratokC
   ): Promise<FilmbaratokContent> {
     const contentEntity = this.initContentEntity(youtubeVideo);
 
-    const mediaTitle = this.extractMediaTitle(youtubeVideo.title);
-    contentEntity.medias = await this.resolveMediasByTitles([mediaTitle]);
+    const mediaTitle = this.extractTopicTitle(youtubeVideo.title);
+    contentEntity.topics = await this.resolveTopicsByRawTitles([mediaTitle]);
 
     return contentEntity;
   }
 
-  private extractMediaTitle(rawTitle: string): string {
+  private extractTopicTitle(rawTitle: string): string {
     const withoutPrefix = rawTitle
       .replace(/^Filmb[aá]r[aá]tok\s+audiokommentár\s*:?\s*/i, '')
       .trim();
 
-    return this.resolveMediaTitle(withoutPrefix);
+    return withoutPrefix;
   }
 }

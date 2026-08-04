@@ -8,8 +8,6 @@ import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { Repository } from 'typeorm';
 import { YoutubeVideo } from '../../../youtube/entities/youtube-video.entity';
 import { FilmbaratokContent } from '../../entities/filmbaratok-content.entity';
-import { plainToInstance } from 'class-transformer';
-import { FilmbaratokContentTopic } from '../../entities/columns/filmbaratok-content-topic.column';
 import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
 
 /**
@@ -51,9 +49,6 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
     const topics = this.extractTopics(descriptionLines, {
       ytVideoId: video.resourceVideoId,
     });
-    const mediasFromTopics = await this.resolveMediasByTitles(
-      topics.map((t) => t.name),
-    );
 
     const persons: FilmbaratokPerson[] = [];
     const personNames = this.extractPersons(descriptionLines, {
@@ -64,8 +59,7 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
     }
 
     contentEntity.durationInMinutes = episodeInfo?.durationInMinutes ?? 0;
-    contentEntity.topics = topics;
-    contentEntity.medias = mediasFromTopics;
+    contentEntity.topics = await this.resolveTopicsByRawTitles(topics);
     contentEntity.participants = persons;
 
     return contentEntity;
@@ -105,7 +99,10 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
    * @param {string} [context.ytVideoId] - Optional YouTube video ID for context when logging warnings.
    * @return {FilmbaratokContentTopic[]} An array of parsed topics, or an empty array if no topics are extracted.
    */
-  private extractTopics(lines: string[], context?: { ytVideoId?: string }) {
+  private extractTopics(
+    lines: string[],
+    context?: { ytVideoId?: string },
+  ): string[] {
     const themeIndex = lines.findIndex((line) =>
       line.trim().startsWith('Téma'),
     );
@@ -137,59 +134,13 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
       break;
     }
 
-    return topicLines
-      .map((line) => this.parseTopicLine(line, context))
-      .filter((topic): topic is FilmbaratokContentTopic => topic !== null);
+    return topicLines.map((line) => line.trim()).filter(Boolean);
   }
 
   private hasUnbalancedOpenParen(text: string): boolean {
     const openCount = (text.match(/\(/g) ?? []).length;
     const closeCount = (text.match(/\)/g) ?? []).length;
     return openCount > closeCount;
-  }
-
-  private parseTopicLine(
-    rawLine: string,
-    context?: { ytVideoId?: string },
-  ): FilmbaratokContentTopic | null {
-    const line = rawLine.replace(/^-\s*/, '').trim();
-
-    if (!line) {
-      console.warn(
-        `[parseTopicLine] Empty topic line${context?.ytVideoId ? ` (episode ${context.ytVideoId})` : ''}`,
-      );
-      return null;
-    }
-
-    const timeMatch = line.match(/\d{1,2}:\d{2}(?::\d{2})?/);
-
-    if (!timeMatch) {
-      return plainToInstance(FilmbaratokContentTopic, {
-        name: line,
-        timestampString: null,
-        timestampInSeconds: null,
-      });
-    }
-
-    const timeText = timeMatch[0];
-    const timeIndex = timeMatch.index as number;
-    const beforeTime = line.slice(0, timeIndex);
-
-    const lastBracketIndex = Math.max(
-      beforeTime.lastIndexOf('('),
-      beforeTime.lastIndexOf('['),
-    );
-    const title = (
-      lastBracketIndex !== -1
-        ? beforeTime.slice(0, lastBracketIndex)
-        : beforeTime
-    ).trim();
-
-    return plainToInstance(FilmbaratokContentTopic, {
-      name: title || line,
-      timestampString: timeText,
-      timestampInSeconds: this.timeTextToSeconds(timeText),
-    });
   }
 
   private extractPersons(

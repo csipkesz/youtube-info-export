@@ -16,7 +16,7 @@ export class FilmbaratokContentTopic extends BaseEntity {
   @Column()
   title: string;
 
-  @Column()
+  @Column({ default: 0 })
   position: number;
 
   @Column({ type: 'varchar', nullable: true })
@@ -31,9 +31,13 @@ export class FilmbaratokContentTopic extends BaseEntity {
   @ManyToOne(() => FilmbaratokMedia, (media) => media.topics, {
     onDelete: 'CASCADE',
     nullable: true,
+    cascade: true,
   })
   media: Relation<FilmbaratokMedia>;
 
   @Column({ type: 'varchar', nullable: true })
   mediaId: string | null;
+
+  /* - Transient */
+  isMedia: boolean;
 }
