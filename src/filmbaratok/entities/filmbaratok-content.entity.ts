@@ -1,9 +1,8 @@
 import { BaseEntity } from '../../common/db/entities/base.entity';
-import { Column, Entity, JoinTable, ManyToMany } from 'typeorm';
+import { Column, Entity, JoinTable, ManyToMany, OneToMany } from 'typeorm';
 import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
 import { FilmbaratokPerson } from './filmbaratok-person.entity';
-import { FilmbaratokMedia } from './filmbaratok-media.entity';
-import { FilmbaratokContentTopic } from './columns/filmbaratok-content-topic.column';
+import { FilmbaratokContentTopic } from './filmbaratok-content-topic.entity';
 
 @Entity()
 export class FilmbaratokContent extends BaseEntity {
@@ -28,7 +27,11 @@ export class FilmbaratokContent extends BaseEntity {
   @Column()
   releaseDate: Date;
 
-  @Column({ type: 'simple-json', nullable: true })
+  @OneToMany(() => FilmbaratokContentTopic, (topic) => topic.content, {
+    onDelete: 'CASCADE',
+    orphanedRowAction: 'delete',
+    cascade: true,
+  })
   topics: FilmbaratokContentTopic[] | null;
 
   @ManyToMany(() => FilmbaratokPerson, (person) => person.contents, {
@@ -37,14 +40,6 @@ export class FilmbaratokContent extends BaseEntity {
   })
   @JoinTable()
   participants: FilmbaratokPerson[];
-
-  // It maybe can be one to many, but prepare when need to connect one media to more content
-  @ManyToMany(() => FilmbaratokMedia, (media) => media.contents, {
-    orphanedRowAction: 'delete',
-    onDelete: 'CASCADE',
-  })
-  @JoinTable()
-  medias: FilmbaratokMedia[];
 
   get youtubeUrl() {
     return `https://www.youtube.com/watch?v=${this.youtubeId}`;
