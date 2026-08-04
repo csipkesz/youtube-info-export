@@ -27,8 +27,8 @@ export class FilmbaratokContentAudioCommentaryParserService extends FilmbaratokC
   ): Promise<FilmbaratokContent> {
     const contentEntity = this.initContentEntity(youtubeVideo);
 
-    const mediaTitle = this.extractTopicTitle(youtubeVideo.title);
-    contentEntity.topics = await this.resolveTopicsByRawTitles([mediaTitle]);
+    const topicTitle = this.extractTopicTitle(youtubeVideo.title);
+    contentEntity.topics = await this.resolveTopicsByRawTitles([topicTitle]);
 
     return contentEntity;
   }
