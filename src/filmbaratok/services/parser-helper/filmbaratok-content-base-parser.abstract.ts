@@ -87,8 +87,15 @@ export abstract class FilmbaratokContentBaseParser {
    * @returns A promise that resolves to an array of FilmbaratokContentTopic entities with resolved media and other information.
    */
   async resolveTopicsByRawTitles(titles: string[]) {
+    let position = 0;
     const topics: FilmbaratokContentTopic[] = titles
-      .map((rawTitle) => this.parseTopicRawTitle(rawTitle))
+      .map((rawTitle) => {
+        const topic = this.parseTopicRawTitle(rawTitle);
+        if (topic) {
+          topic.position = position++;
+        }
+        return topic;
+      })
       .filter((t) => t !== null);
 
     await this.resolveTopicMedias(topics);
