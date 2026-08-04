@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
 import { plainToInstance } from 'class-transformer';
+import { FilmbaratokContentTopic } from '../../entities/filmbaratok-content-topic.entity';
 
 const NON_MEDIA_TOPICS = [
   'Felvezetés',
@@ -44,7 +45,16 @@ export interface FilmbaratokContentParserMaps {
   persons: Map<string, FilmbaratokPerson>;
 }
 
+interface MediaTitleInfo {
+  title: string;
+  subtitle?: string;
+  isSpoiler: boolean;
+}
+
 export abstract class FilmbaratokContentBaseParser {
+  private static readonly SEASON_PATTERN =
+    /(?:sorozatajánló\s*&\s*)?(?:kibeszélés\s+)?\d+(?:[-&]\d+)?\s*\.?\s*évad(?:\s*\/\s*\d+(?:-\d+)?\s*\.?\s*(?:évad|rész)?)?(?:\s*kisfinálé)?(?:\s*\([^()]*\))?/gi;
+
   constructor(
     protected readonly mediaRepo: Repository<FilmbaratokMedia>,
     protected readonly personRepo: Repository<FilmbaratokPerson>,
@@ -71,66 +81,212 @@ export abstract class FilmbaratokContentBaseParser {
   }
 
   /**
-   * Resolves the media title from a raw title string by removing any content within brackets or parentheses.
+   * Handle raw topic titles and return with a full topic entity with media and filled with infos.
    *
-   * @param rawTitle - The raw title string to resolve.
-   * @returns The resolved media title without any bracketed or parenthetical content.
+   * @param titles - An array of raw topic titles to resolve.
+   * @returns A promise that resolves to an array of FilmbaratokContentTopic entities with resolved media and other information.
    */
-  protected resolveMediaTitle(rawTitle: string): string {
-    const firstBracketIndex = rawTitle.search(/[[(]/);
-    const title =
-      firstBracketIndex !== -1
-        ? rawTitle.slice(0, firstBracketIndex)
-        : rawTitle;
+  async resolveTopicsByRawTitles(titles: string[]) {
+    let position = 0;
+    const topics: FilmbaratokContentTopic[] = titles
+      .map((rawTitle) => {
+        const topic = this.parseTopicRawTitle(rawTitle);
+        if (topic) {
+          topic.position = position++;
+        }
+        return topic;
+      })
+      .filter((t) => t !== null);
 
-    return title.trim();
+    await this.resolveTopicMedias(topics);
+
+    return topics;
+  }
+
+  private async resolveTopicMedias(
+    topics: FilmbaratokContentTopic[],
+  ): Promise<void> {
+    const mediaTopics = topics.filter((topic) => topic.isMedia);
+    if (!mediaTopics.length) {
+      return;
+    }
+
+    const mediaInfoByTopic = new Map<FilmbaratokContentTopic, MediaTitleInfo>(
+      mediaTopics.map((topic) => [topic, this.parseMediaTitle(topic.title)]),
+    );
+
+    const existingMediaIdByKey = await this.loadExistingMediaIds(
+      [...mediaInfoByTopic.values()].map((info) => info.title),
+    );
+
+    const resolvedMediaByKey = new Map<string, FilmbaratokMedia>();
+
+    for (const topic of mediaTopics) {
+      const info = mediaInfoByTopic.get(topic)!;
+      topic.isSpoiler = info.isSpoiler;
+      topic.subtitle = info.subtitle || null;
+
+      const key = this.normalizeMediaKey(info.title);
+
+      let media = resolvedMediaByKey.get(key);
+      if (!media) {
+        const existingId = existingMediaIdByKey.get(key);
+        media = this.mediaRepo.create({ title: info.title, id: existingId });
+        resolvedMediaByKey.set(key, media);
+      }
+
+      topic.media = media;
+    }
+
+    await this.mediaRepo.save([...resolvedMediaByKey.values()]);
   }
 
   /**
-   * Resolves media entities by their titles. If a media entity with the given title already exists in the database, it will be reused.
-   * Otherwise, a new media entity will be created and saved to the database.
-   * Filter out non media titles, but some titles has exception (like talking about Oscar gala, but there is a movie called "Oscar").
+   * Loads existing media IDs from the database for the given titles.
    *
-   * @param titles - An array of media titles to resolve.
-   * @returns A promise that resolves to an array of FilmbaratokMedia entities.
+   * @param titles - An array of media titles to check for existing IDs.
+   * @returns A promise that resolves to a Map where the keys are normalized media titles and the values are the corresponding media IDs.
+   * @private
    */
-  protected async resolveMediasByTitles(titles: string[]) {
-    const mediaTitles = titles.filter((title) => {
-      const normalizedTitle = title.toLowerCase();
-      const isNonMediaTitle = NON_MEDIA_TOPICS.some((t) =>
-        normalizedTitle.includes(t.toLowerCase()),
-      );
-
-      if (isNonMediaTitle) {
-        const isNonMediaTitleException = NON_MEDIA_TOPICS_EXCEPTION.some(
-          (t) => normalizedTitle === t.toLowerCase(),
-        );
-        return isNonMediaTitleException;
-      }
-
-      return true;
-    });
-
-    if (!mediaTitles.length) {
-      return [];
+  private async loadExistingMediaIds(
+    titles: string[],
+  ): Promise<Map<string, string>> {
+    if (!titles.length) {
+      return new Map();
     }
 
     const existingMedias = await this.mediaRepo
       .createQueryBuilder('media')
       .select(['media.id', 'media.title'])
-      .where('media.title IN (:...titles)', { titles: mediaTitles })
+      .where('media.title IN (:...titles)', { titles })
       .getMany();
 
-    const existingMediaIdMap: Map<string, string> = new Map(
-      existingMedias.map((e) => [this.normalizeMediaKey(e.title), e.id]),
+    return new Map(
+      existingMedias.map((m) => [this.normalizeMediaKey(m.title), m.id]),
+    );
+  }
+
+  /**
+   * Parses a raw media title to extract the cleaned title and determine if it contains spoiler information.
+   *
+   * @param rawTitle - The raw media title to parse.
+   * @returns An object containing the cleaned title and a boolean indicating if it is a spoiler.
+   */
+  protected parseMediaTitle(rawTitle: string): MediaTitleInfo {
+    let isSpoiler = false;
+    let title = rawTitle;
+
+    // === Check spoiler
+    const spoilerRegexes = [
+      /[([][^()[\]]*spoiler[^()[\]]*[)\]]/gi,
+      /\*?\s*spoiler\w*/gi,
+    ];
+    for (const regex of spoilerRegexes) {
+      title = title.replace(regex, () => {
+        isSpoiler = true;
+        return '';
+      });
+
+      if (isSpoiler) {
+        break;
+      }
+    }
+
+    // Check seasons
+    const subtitleParts: string[] = [];
+    title = title.replace(
+      FilmbaratokContentBaseParser.SEASON_PATTERN,
+      (match) => {
+        subtitleParts.push(match.trim());
+        return '';
+      },
+    );
+    const subtitle = subtitleParts.join(' ');
+
+    // Clear empty brackets
+    title = title
+      .replace(/\s{2,}/g, ' ')
+      .replace(/[-\s]+$/, '')
+      .replace(/[([]\s*[)\]]/g, '')
+      .trim();
+
+    if (isSpoiler)
+      console.log(
+        `[parseMediaTitle] Parsed media title: "${rawTitle}" -> "${title}", isSpoiler: ${isSpoiler ? 'true' : 'false'}`,
+      );
+
+    return {
+      title,
+      subtitle,
+      isSpoiler,
+    };
+  }
+
+  /**
+   * Generally parse topic raw title and handle all possible data and string formatting.
+   *
+   * @param rawTitle
+   * @private
+   */
+  private parseTopicRawTitle(rawTitle: string) {
+    const topicEntity = new FilmbaratokContentTopic();
+
+    // Remove leading hyphen and whitespace from the raw title
+    let title = rawTitle.replace(/^-\s*/, '').trim();
+    if (!title) {
+      return null;
+    }
+
+    // region Handle podcast topics like: "Róma (00:50:12)"
+    const timeMatch = title.match(/\d{1,2}:\d{2}(?::\d{2})?/);
+    if (timeMatch) {
+      const timeIndex = Number(timeMatch.index);
+      const beforeTime = title.slice(0, timeIndex).trim();
+      const lastBracketIndex = Math.max(
+        beforeTime.lastIndexOf('('),
+        beforeTime.lastIndexOf('['),
+      );
+
+      topicEntity.timestampString = timeMatch[0];
+      topicEntity.timestampInSeconds = this.timeTextToSeconds(
+        topicEntity.timestampString,
+      );
+      title = (
+        lastBracketIndex !== -1
+          ? beforeTime.slice(0, lastBracketIndex)
+          : beforeTime
+      ).trim();
+    }
+    // endregion
+
+    topicEntity.title = title;
+    // Transient properties
+    topicEntity.isMedia = this.titleIsMediaTitle(title);
+
+    return topicEntity;
+  }
+
+  /**
+   * Helper for determine a raw title is can be media title.
+   * The non media exception is needed because guys spoke about Oscar gala, but some episode talk about Oscar the movie.
+   *
+   * @param title
+   * @private
+   */
+  private titleIsMediaTitle(title: string) {
+    const normalizedTitle = title.toLowerCase();
+    const isNonMediaTitle = NON_MEDIA_TOPICS.some((t) =>
+      normalizedTitle.includes(t.toLowerCase()),
     );
 
-    const mediaEntities: FilmbaratokMedia[] = mediaTitles.map((title) => {
-      const existingId = existingMediaIdMap.get(this.normalizeMediaKey(title));
-      return this.mediaRepo.create({ title, id: existingId });
-    });
+    if (isNonMediaTitle) {
+      const isNonMediaTitleException = NON_MEDIA_TOPICS_EXCEPTION.some(
+        (t) => normalizedTitle === t.toLowerCase(),
+      );
+      return isNonMediaTitleException;
+    }
 
-    return await this.mediaRepo.save(mediaEntities);
+    return true;
   }
 
   /**

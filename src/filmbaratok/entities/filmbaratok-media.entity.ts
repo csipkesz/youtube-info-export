@@ -1,6 +1,6 @@
-import { Column, Entity, ManyToMany } from 'typeorm';
+import { Column, Entity, OneToMany } from 'typeorm';
 import { BaseEntity } from '../../common/db/entities/base.entity';
-import { FilmbaratokContent } from './filmbaratok-content.entity';
+import { FilmbaratokContentTopic } from './filmbaratok-content-topic.entity';
 
 @Entity()
 export class FilmbaratokMedia extends BaseEntity {
@@ -10,10 +10,10 @@ export class FilmbaratokMedia extends BaseEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   titleEn: string | null;
 
-  @ManyToMany(() => FilmbaratokContent, (content) => content.medias, {
+  @OneToMany(() => FilmbaratokContentTopic, (topic) => topic.media, {
     onDelete: 'CASCADE',
   })
-  contents: FilmbaratokContent[];
+  topics: FilmbaratokContentTopic[];
 
   // TODO AFTER MOVIE DB: Thumbnail, description, release date, some link to imdb if possible
 }
