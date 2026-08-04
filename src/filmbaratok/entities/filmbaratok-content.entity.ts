@@ -32,7 +32,7 @@ export class FilmbaratokContent extends BaseEntity {
     orphanedRowAction: 'delete',
     cascade: true,
   })
-  topics: FilmbaratokContentTopic[] | null;
+  topics: FilmbaratokContentTopic[];
 
   @ManyToMany(() => FilmbaratokPerson, (person) => person.contents, {
     orphanedRowAction: 'delete',
