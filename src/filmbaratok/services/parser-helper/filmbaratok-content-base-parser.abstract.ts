@@ -47,10 +47,14 @@ export interface FilmbaratokContentParserMaps {
 
 interface MediaTitleInfo {
   title: string;
+  subtitle?: string;
   isSpoiler: boolean;
 }
 
 export abstract class FilmbaratokContentBaseParser {
+  private static readonly SEASON_PATTERN =
+    /(?:sorozatajánló\s*&\s*)?(?:kibeszélés\s+)?\d+(?:[-&]\d+)?\s*\.?\s*évad(?:\s*\/\s*\d+(?:-\d+)?\s*\.?\s*(?:évad|rész)?)?(?:\s*kisfinálé)?(?:\s*\([^()]*\))?/gi;
+
   constructor(
     protected readonly mediaRepo: Repository<FilmbaratokMedia>,
     protected readonly personRepo: Repository<FilmbaratokPerson>,
@@ -113,6 +117,7 @@ export abstract class FilmbaratokContentBaseParser {
     for (const topic of mediaTopics) {
       const info = mediaInfoByTopic.get(topic)!;
       topic.isSpoiler = info.isSpoiler;
+      topic.subtitle = info.subtitle || null;
 
       const key = this.normalizeMediaKey(info.title);
 
@@ -180,10 +185,22 @@ export abstract class FilmbaratokContentBaseParser {
       }
     }
 
+    // Check seasons
+    const subtitleParts: string[] = [];
+    title = title.replace(
+      FilmbaratokContentBaseParser.SEASON_PATTERN,
+      (match) => {
+        subtitleParts.push(match.trim());
+        return '';
+      },
+    );
+    const subtitle = subtitleParts.join(' ');
+
     // Clear empty brackets
     title = title
       .replace(/\s{2,}/g, ' ')
       .replace(/[-\s]+$/, '')
+      .replace(/[([]\s*[)\]]/g, '')
       .trim();
 
     if (isSpoiler)
@@ -193,6 +210,7 @@ export abstract class FilmbaratokContentBaseParser {
 
     return {
       title,
+      subtitle,
       isSpoiler,
     };
   }

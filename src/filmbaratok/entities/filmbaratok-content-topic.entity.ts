@@ -16,6 +16,9 @@ export class FilmbaratokContentTopic extends BaseEntity {
   @Column()
   title: string;
 
+  @Column({ type: 'varchar', nullable: true })
+  subtitle: string | null;
+
   @Column({ default: 0 })
   position: number;
 
