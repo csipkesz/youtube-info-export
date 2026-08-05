@@ -27,7 +27,10 @@ export class FilmbaratokContentExpressParserService extends FilmbaratokContentBa
   ): Promise<FilmbaratokContent> {
     const contentEntity = this.initContentEntity(youtubeVideo);
 
-    const topicTitles = this.extractTopicTitle(youtubeVideo.title);
+    const topicTitles = this.extractTopicTitle(
+      youtubeVideo.title,
+      youtubeVideo.description,
+    );
 
     const mappedPersonNames: string[] = Array.from(maps.persons.keys());
     const personNames = this.resolvePersonNames(youtubeVideo.description, {
@@ -46,18 +49,14 @@ export class FilmbaratokContentExpressParserService extends FilmbaratokContentBa
     return contentEntity;
   }
 
-  private extractTopicTitle(rawTitle: string): string[] {
+  private extractTopicTitle(rawTitle: string, description: string): string[] {
     const withoutPrefix = rawTitle
       .replace(/^Filmb[aá]r[aá]tok\s+Expressz:?\s*/i, '')
       .trim();
 
     const seriesMatch = withoutPrefix.match(/^Sorozatok\s*\((.+)\)$/i);
     if (seriesMatch) {
-      console.log('========= SERIES MATCH ========= - ', seriesMatch[1]);
-      return seriesMatch[1]
-        .split(',')
-        .map((title) => title.trim())
-        .filter(Boolean);
+      return this.parseTopicLinesFromDescription(description);
     }
 
     return withoutPrefix ? [withoutPrefix] : [];
