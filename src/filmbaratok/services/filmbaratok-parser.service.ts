@@ -32,6 +32,20 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
   },
 ];
 
+/**
+ * Megoldandó nevek:
+ * - Mátrix trilógia
+ * - Így neveld a sárkányod 1-2
+ * - the witcher és The Witcher / Vaják
+ *
+ * Megoldandó problémák:
+ * - Egy topic, több media
+ * - Tmdb szinkronnál ha nincs találat:
+ * -- Ha van benne évszám, szedje szét és keressen rá a címre és az évszámra release date alapján
+ * -- Ne teljes névegyezőséget keressen, hanem %-os alapon (pl.: Pofa be - Pofa be!)
+ *
+ */
+
 @Injectable()
 export class FilmbaratokParserService implements OnModuleInit {
   private readonly youtubeChannelId = 'UCejqyGXi812VAJK5emU3OqQ';
@@ -51,7 +65,7 @@ export class FilmbaratokParserService implements OnModuleInit {
   onModuleInit() {
     // this.syncYoutubeChannelWithVideos();
     this.parseVideosFromDb().then(() => {
-      this.parseMediaWithMovieDatabase();
+      // this.parseMediaWithMovieDatabase();
     });
   }
 
