@@ -33,10 +33,16 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
 ];
 
 /**
- * Megoldandó nevek:
+ * Megoldandó összevont topic-media:
  * - Mátrix trilógia
  * - Így neveld a sárkányod 1-2
- * - the witcher és The Witcher / Vaják
+ * - Shop Stop 1-2
+ *
+ * Megoldandó media aliasok:
+ * - the witcher és The Witcher / Vaják összevonás
+ * - Shin Godzilla to Shin Gojira
+ * - (Zoly)
+ * - (freddyD kiadás)
  *
  * Megoldandó problémák:
  * - Egy topic, több media
