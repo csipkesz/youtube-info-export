@@ -49,7 +49,8 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
  * - Tmdb szinkronnál ha nincs találat:
  * -- Ha van benne évszám, szedje szét és keressen rá a címre és az évszámra release date alapján
  * -- Ne teljes névegyezőséget keressen, hanem %-os alapon (pl.: Pofa be - Pofa be!)
- *
+ * - Tmdb szinkronnál, ha a media össze van már kapcsolva, akkor mediaType alapján kérjük le az infókat.
+ * - Tmdb media 6 hónapos kötelező szinkron tmdbUpdate alapján
  */
 
 @Injectable()
