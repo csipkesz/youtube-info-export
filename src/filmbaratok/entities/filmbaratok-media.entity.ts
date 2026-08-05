@@ -8,12 +8,31 @@ export class FilmbaratokMedia extends BaseEntity {
   title: string;
 
   @Column({ type: 'varchar', length: 100, nullable: true })
-  titleEn: string | null;
+  originalTitle: string | null;
 
   @OneToMany(() => FilmbaratokContentTopic, (topic) => topic.media, {
     onDelete: 'CASCADE',
   })
   topics: FilmbaratokContentTopic[];
 
-  // TODO AFTER MOVIE DB: Thumbnail, description, release date, some link to imdb if possible
+  @Column({ type: 'text', nullable: true })
+  overview: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  backdropPath: string | null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  posterPath: string | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  releaseDate: Date | null;
+
+  @Column({ type: 'int', nullable: true })
+  tmdbId: number | null;
+
+  @Column({ type: 'datetime', nullable: true })
+  lastTmdbUpdate: Date | null;
+
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  mediaType: string | null;
 }
