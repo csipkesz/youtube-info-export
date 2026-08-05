@@ -11,6 +11,7 @@ import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
 import { TmdbService } from '../sub/tmdb/tmdb.service';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
+import { diceCoefficient } from 'dice-coefficient';
 
 const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
   {
@@ -41,14 +42,13 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
  * Megoldandó media aliasok:
  * - the witcher és The Witcher / Vaják összevonás
  * - Shin Godzilla to Shin Gojira
+ * - Lego kaland és LEGO-kaland
  * - (Zoly)
  * - (freddyD kiadás)
+ * - 12: 01 to 12:01
  *
  * Megoldandó problémák:
  * - Egy topic, több media
- * - Tmdb szinkronnál ha nincs találat:
- * -- Ha van benne évszám, szedje szét és keressen rá a címre és az évszámra release date alapján
- * -- Ne teljes névegyezőséget keressen, hanem %-os alapon (pl.: Pofa be - Pofa be!)
  * - Tmdb szinkronnál, ha a media össze van már kapcsolva, akkor mediaType alapján kérjük le az infókat.
  * - Tmdb media 6 hónapos kötelező szinkron tmdbUpdate alapján
  */
@@ -72,7 +72,7 @@ export class FilmbaratokParserService implements OnModuleInit {
   onModuleInit() {
     // this.syncYoutubeChannelWithVideos();
     this.parseVideosFromDb().then(() => {
-      // this.parseMediaWithMovieDatabase();
+      this.parseMediaWithMovieDatabase();
     });
   }
 
@@ -104,14 +104,28 @@ export class FilmbaratokParserService implements OnModuleInit {
 
   async parseMediaWithMovieDatabase() {
     const mediaWithoutResult: { id: string; title: string }[] = [];
-    const mediaWithMoreResultWithoutFind: { id: string; title: string }[] = [];
+    const mediaWithMoreResultWithoutFind: {
+      id: string;
+      title: string;
+      lastScore: number;
+      results: any;
+    }[] = [];
 
     const listOfMedia = await this.mediaRepo.find();
 
     const processMedia = async (media: FilmbaratokMedia) => {
-      const results = await this.tmdbService.searchMulti(media.title);
+      // Detect when title has (xxxx) or [xxxx] year, extract and remove it
+      let mediaTitle = media.title;
+      let mediaYear: string | null = null;
+      const yearMatch = mediaTitle.match(/(.*?)\s*[([]((?:19|20)\d{2})[)\]]$/);
+      if (yearMatch) {
+        mediaTitle = yearMatch[1].trim();
+        mediaYear = yearMatch[2];
+      }
+
+      const results = await this.tmdbService.searchMulti(mediaTitle);
       console.log(
-        `Processing ${media.title} - Found ${results.total_results} results`,
+        `Processing ${media.title} (${mediaYear || 'Unknown Year'}) - Found ${results.total_results} results`,
       );
       if (results.total_results === 0) {
         mediaWithoutResult.push({ id: media.id, title: media.title });
@@ -119,18 +133,39 @@ export class FilmbaratokParserService implements OnModuleInit {
       }
 
       const totalResults = results.total_results;
+      let lastScore = 0;
       const firstResult =
         totalResults > 1
-          ? results.results.find(
-              (r) =>
-                r.title === media.title || r.original_title === media.title,
-            )
+          ? results.results.find((r) => {
+              const titles: string[] = [
+                r.title || '',
+                r.original_title || '',
+                r.original_name || '',
+                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                String((r as any)?.name || ''),
+              ].filter(Boolean);
+              const scores = titles.map((title) =>
+                diceCoefficient(title, mediaTitle),
+              );
+              const maxScore = Math.max(...scores);
+              lastScore = maxScore;
+
+              const isYearMatch = mediaYear
+                ? (r.release_date || r.first_air_date || '').startsWith(
+                    mediaYear,
+                  )
+                : true;
+
+              return maxScore > 0.5 && isYearMatch;
+            })
           : results.results[0];
 
       if (!firstResult) {
         mediaWithMoreResultWithoutFind.push({
           id: media.id,
           title: media.title,
+          lastScore,
+          results,
         });
         return;
       }
@@ -165,7 +200,7 @@ export class FilmbaratokParserService implements OnModuleInit {
       `Media with more result and not found: ${mediaWithMoreResultWithoutFind.length}`,
     );
 
-    const reportData = {
+    await this.createMovieDBReportData({
       generatedAt: new Date().toISOString(),
       summary: {
         totalProcessed: listOfMedia.length,
@@ -174,9 +209,10 @@ export class FilmbaratokParserService implements OnModuleInit {
       },
       mediaWithoutResult,
       mediaWithMoreResultWithoutFind,
-    };
+    });
+  }
 
-    // A projekt gyökerében lévő 'reports' mappába mentjük
+  private async createMovieDBReportData(data: any) {
     const outputDir = path.join(process.cwd(), 'reports');
     const filePath = path.join(
       outputDir,
@@ -184,15 +220,8 @@ export class FilmbaratokParserService implements OnModuleInit {
     );
 
     try {
-      // Létrehozzuk a mappát, ha még nem létezik
       await fs.mkdir(outputDir, { recursive: true });
-
-      // JSON fájl kiírása szép behúzással (2 szóköz)
-      await fs.writeFile(
-        filePath,
-        JSON.stringify(reportData, null, 2),
-        'utf-8',
-      );
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
 
       console.log(`Report successfully saved to: ${filePath}`);
     } catch (err) {
