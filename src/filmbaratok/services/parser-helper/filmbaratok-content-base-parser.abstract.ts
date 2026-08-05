@@ -38,6 +38,10 @@ const NON_MEDIA_TOPICS = [
   'hallgató',
   'Oscar',
   'filmév',
+  '1999-es filmeket amiket már kitárgyaltunk',
+  'Távmozi élménybeszámoló',
+  'nyertes Márkkal',
+  'Vissza a jövőbe trilógia vetítés',
 ];
 
 const NON_MEDIA_TOPICS_EXCEPTION = ['Oscar (1991)'];
