@@ -37,6 +37,7 @@ const NON_MEDIA_TOPICS = [
   'filmosztás',
   'hallgató',
   'Oscar',
+  'filmév',
 ];
 
 const NON_MEDIA_TOPICS_EXCEPTION = ['Oscar (1991)'];
