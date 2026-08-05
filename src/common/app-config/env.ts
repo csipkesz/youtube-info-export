@@ -19,6 +19,10 @@ const envSchema = z.object({
   YOUTUBE_API_BASE_URL: z
     .string()
     .default('https://youtube.googleapis.com/youtube/v3'),
+
+  // TMDB
+  TMDB_API_KEY: z.string().nonempty(),
+  TMDB_API_BASE_URL: z.string().default('https://api.themoviedb.org/3'),
 });
 
 /**
