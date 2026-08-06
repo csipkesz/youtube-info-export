@@ -5,61 +5,10 @@ import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
 import { plainToInstance } from 'class-transformer';
 import { FilmbaratokContentTopic } from '../../entities/filmbaratok-content-topic.entity';
-
-const NON_MEDIA_TOPICS = [
-  'Felvezetés',
-  'Borítókép',
-  'Nép akarata',
-  'Villámkérdés',
-  'Oscar jelöltek',
-  'Keresés',
-  'Rovat',
-  'Előbeszélgetés',
-  'Beszélgetés',
-  'Vendégünk',
-  'Évösszegz',
-  'Évösszegző',
-  'kérdőív',
-  'Cinefest',
-  'Franchise',
-  'Megosztás',
-  'Jubileumi adás',
-  'éves a Filmbarátok Podcast',
-  '. adást',
-  'Hallgatói kérdés',
-  'Vélemények bizonyos film',
-  'Rendezői tapasztalat',
-  'Kérdéseitekre válaszol',
-  'filmgyűjtés mint szenvedély',
-  'Közönség',
-  'zárthelyi',
-  'Szavazás',
-  'filmosztás',
-  'hallgató',
-  'Oscar',
-  'filmév',
-  '1999-es filmeket amiket már kitárgyaltunk',
-  'élménybeszámoló',
-  'nyertes Márkkal',
-  'Vissza a jövőbe trilógia vetítés',
-  'Batman kezdődik keletkezéstörténete',
-  'Partizán Szomszédok videója',
-  'kvíz',
-  'pamkutya',
-  'helyreigazítás',
-  'Madarász Isti',
-  '2016 halottjai',
-  'körbeajándékozás',
-  'Filmek amikről nem lesz szó',
-  'Vége Freddy embargójának',
-  'Levezető',
-  'Nyereményjáték',
-  'Felvezető',
-  'Felveztő',
-  'Sztárszignál',
-];
-
-const NON_MEDIA_TOPICS_EXCEPTION = ['Oscar (1991)'];
+import {
+  NON_MEDIA_TOPICS,
+  NON_MEDIA_TOPICS_EXCEPTION,
+} from '../../filmbaratok.constants';
 
 export interface FilmbaratokContentParserMaps {
   persons: Map<string, FilmbaratokPerson>;
