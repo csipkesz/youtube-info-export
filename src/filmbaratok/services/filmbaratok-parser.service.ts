@@ -6,12 +6,13 @@ import { FilmbaratokContent } from '../entities/filmbaratok-content.entity';
 import { In, Repository } from 'typeorm';
 import { FilmbaratokPerson } from '../entities/filmbaratok-person.entity';
 import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
-import { FilmbaratokParserHelperService } from './parser-helper/filmbaratok-parser-helper.service';
+import {
+  FilmbaratokParserHelperService,
+  TmdbSyncReport,
+} from './parser-helper/filmbaratok-parser-helper.service';
 import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
-import { TmdbService } from '../sub/tmdb/tmdb.service';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import { diceCoefficient } from 'dice-coefficient';
 
 const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
   {
@@ -50,7 +51,6 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
  *
  * Megoldandó problémák:
  * - Egy topic, több media
- * - Tmdb szinkronnál, ha a media össze van már kapcsolva, akkor mediaType alapján kérjük le az infókat.
  * - Tmdb media 6 hónapos kötelező szinkron tmdbUpdate alapján
  * - contansokat kivinni fájlokba mert kezdenek nagyok lenni
  */
@@ -68,7 +68,6 @@ export class FilmbaratokParserService implements OnModuleInit {
     private readonly personRepo: Repository<FilmbaratokPerson>,
     @InjectRepository(FilmbaratokMedia)
     private readonly mediaRepo: Repository<FilmbaratokMedia>,
-    private readonly tmdbService: TmdbService,
   ) {}
 
   onModuleInit() {
@@ -78,6 +77,13 @@ export class FilmbaratokParserService implements OnModuleInit {
     });
   }
 
+  /**
+   * Synchronizes the YouTube channel with its videos, retrieves updated information, and optionally processes the videos.
+   *
+   * @param {Object} options - Configuration options for the synchronization process.
+   * @param {boolean} [options.doParse] - Indicates whether the retrieved videos should be parsed and saved to the database.
+   * @return {Promise<void>} A promise that resolves when the synchronization and optional processing is complete.
+   */
   async syncYoutubeChannelWithVideos(options: { doParse?: boolean } = {}) {
     const result = await this.ytChannelService.syncChannel({
       externalChannelId: this.youtubeChannelId,
@@ -93,6 +99,12 @@ export class FilmbaratokParserService implements OnModuleInit {
     }
   }
 
+  /**
+   * Parses videos from the YouTube channel and stores them into the database.
+   * Utilizes iteration over the channel videos with a defined batch size for optimization.
+   *
+   * @return {Promise<void>} A promise that resolves when all videos have been successfully parsed and stored in the database.
+   */
   async parseVideosFromDb() {
     // At this time we have 623 video on channel. Don't need more complex optimization.
     await this.ytChannelService.iterateChannelVideos(
@@ -104,116 +116,59 @@ export class FilmbaratokParserService implements OnModuleInit {
     );
   }
 
-  async parseMediaWithMovieDatabase() {
-    const mediaWithoutResult: { id: string; title: string }[] = [];
-    const mediaWithMoreResultWithoutFind: {
-      id: string;
-      title: string;
-      lastScore: number;
-      results: any;
-    }[] = [];
+  /**
+   * Parses media items using a movie database integration to process known and unknown media.
+   * This method fetches all media records, processes them in batches, updates their information,
+   * and generates a report summarizing the processing results.
+   *
+   * @return {Promise<void>} A promise that resolves when the media parsing and report generation are complete.
+   */
+  async parseMediaWithMovieDatabase(): Promise<void> {
+    const report: TmdbSyncReport = {
+      mediaWithoutResult: [],
+      mediaWithMoreResultWithoutFind: [],
+    };
 
     const listOfMedia = await this.mediaRepo.find();
-
-    const processMedia = async (media: FilmbaratokMedia) => {
-      // Detect when title has (xxxx) or [xxxx] year, extract and remove it
-      let mediaTitle = media.title;
-      let mediaYear: string | null = null;
-      const yearMatch = mediaTitle.match(/(.*?)\s*[([]((?:19|20)\d{2})[)\]]$/);
-      if (yearMatch) {
-        mediaTitle = yearMatch[1].trim();
-        mediaYear = yearMatch[2];
-      }
-
-      const results = await this.tmdbService.searchMulti(mediaTitle);
-      console.log(
-        `Processing ${media.title} (${mediaYear || 'Unknown Year'}) - Found ${results.total_results} results`,
-      );
-      if (results.total_results === 0) {
-        mediaWithoutResult.push({ id: media.id, title: media.title });
-        return;
-      }
-
-      const totalResults = results.total_results;
-      let lastScore = 0;
-      const firstResult =
-        totalResults > 1
-          ? results.results.find((r) => {
-              const titles: string[] = [
-                r.title || '',
-                r.original_title || '',
-                r.original_name || '',
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-                String((r as any)?.name || ''),
-              ].filter(Boolean);
-              const scores = titles.map((title) =>
-                diceCoefficient(title, mediaTitle),
-              );
-              const maxScore = Math.max(...scores);
-              lastScore = maxScore;
-
-              const isYearMatch = mediaYear
-                ? (r.release_date || r.first_air_date || '').startsWith(
-                    mediaYear,
-                  )
-                : true;
-
-              return maxScore > 0.5 && isYearMatch;
-            })
-          : results.results[0];
-
-      if (!firstResult) {
-        mediaWithMoreResultWithoutFind.push({
-          id: media.id,
-          title: media.title,
-          lastScore,
-          results,
-        });
-        return;
-      }
-
-      media.tmdbId = firstResult.id;
-      media.originalTitle =
-        firstResult.original_title || firstResult.original_name || null;
-      media.overview = firstResult.overview;
-      media.backdropPath = firstResult.backdrop_path;
-      media.posterPath = firstResult.poster_path;
-      media.lastTmdbUpdate = new Date();
-      media.mediaType = firstResult.media_type;
-
-      if (firstResult.release_date) {
-        media.releaseDate = new Date(firstResult.release_date);
-      } else if (firstResult.first_air_date) {
-        media.releaseDate = new Date(firstResult.first_air_date);
-      }
-    };
 
     const batchSize = 70;
     for (let i = 0; i < listOfMedia.length; i += batchSize) {
       const batch = listOfMedia.slice(i, i + batchSize);
-      await Promise.all(batch.map(processMedia));
+      await Promise.all(
+        batch.map((media) =>
+          media.tmdbId
+            ? this.parserHelper.tmdbProcessKnownMedia(media)
+            : this.parserHelper.tmdbProcessUnknownMedia(media, report),
+        ),
+      );
     }
 
     await this.mediaRepo.save(listOfMedia, { chunk: 100 });
 
     console.log(`Overall processing of ${listOfMedia.length} media finished.`);
-    console.log(`Media without result: ${mediaWithoutResult.length}`);
+    console.log(`Media without result: ${report.mediaWithoutResult.length}`);
     console.log(
-      `Media with more result and not found: ${mediaWithMoreResultWithoutFind.length}`,
+      `Media with more result and not found: ${report.mediaWithMoreResultWithoutFind.length}`,
     );
 
     await this.createMovieDBReportData({
       generatedAt: new Date().toISOString(),
       summary: {
         totalProcessed: listOfMedia.length,
-        withoutResultCount: mediaWithoutResult.length,
-        withMoreResultWithoutFindCount: mediaWithMoreResultWithoutFind.length,
+        withoutResultCount: report.mediaWithoutResult.length,
+        withMoreResultWithoutFindCount:
+          report.mediaWithMoreResultWithoutFind.length,
       },
-      mediaWithoutResult,
-      mediaWithMoreResultWithoutFind,
+      ...report,
     });
   }
 
+  /**
+   * Creates a movie database report file in JSON format and saves it to the disk.
+   *
+   * @param {any} data - The data to be included in the generated report.
+   * @return {Promise<void>} A promise that resolves when the report file is successfully saved.
+   */
   private async createMovieDBReportData(data: any) {
     const outputDir = path.join(process.cwd(), 'reports');
     const filePath = path.join(
@@ -231,6 +186,13 @@ export class FilmbaratokParserService implements OnModuleInit {
     }
   }
 
+  /**
+   * Parses an array of YouTube videos and updates the database with the parsed information.
+   * Processes videos by categories, including podcasts and non-podcasts, and ensures that existing content does not get duplicated.
+   *
+   * @param {YoutubeVideo[]} youtubeVideos - The array of YouTube videos to be parsed and saved to the database. Each video should contain information such as title and resource ID.
+   * @return {Promise<void>} A Promise that resolves when the parsing and database update is complete. Returns immediately if the input array is empty.
+   */
   private async parseVideosToDb(youtubeVideos: YoutubeVideo[]) {
     if (!youtubeVideos.length) {
       return;
