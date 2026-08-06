@@ -10,6 +10,7 @@ import {
   MEDIA_TITLE_EXPANSION_ALIASES,
   NON_MEDIA_TOPICS,
   NON_MEDIA_TOPICS_EXCEPTION,
+  PODCAST_NOISE_PATTERNS,
 } from '../../filmbaratok.constants';
 import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
 import { FilmbaratokMediaTitleInfo } from '../../interfaces/filmbaratok-media-title-info.interface';
@@ -204,6 +205,8 @@ export abstract class FilmbaratokContentBaseParser {
     );
     const subtitle = subtitleParts.join(' ');
 
+    title = this.removePodcastNoise(title);
+
     // Clear empty brackets
     title = title
       .replace(/\s{2,}/g, ' ')
@@ -226,6 +229,30 @@ export abstract class FilmbaratokContentBaseParser {
     };
   }
 
+  /**
+   * Removes unwanted noise or patterns typical to podcast titles from the given string.
+   * Cleans up the title by applying a set of predefined patterns and trims any extraneous whitespace.
+   *
+   * @param {string} rawTitle - The original podcast title that needs to be cleaned.
+   * @return {string} - The cleaned and noise-free podcast title.
+   */
+  protected removePodcastNoise(rawTitle: string): string {
+    let title = rawTitle;
+
+    for (const pattern of PODCAST_NOISE_PATTERNS) {
+      title = title.replace(pattern, '');
+    }
+
+    return title.trim();
+  }
+
+  /**
+   * Resolves the canonical media title for a given title by normalizing the input and looking it up in a predefined alias map.
+   * If no match is found, the original title is returned.
+   *
+   * @param title The media title to be resolved.
+   * @return The canonical media title if a match is found, otherwise the original title.
+   */
   protected resolveCanonicalMediaTitle(title: string): string {
     const normalizedKey = this.normalizeMediaKey(title);
     return MEDIA_TITLE_ALIASES_LOOKUP.get(normalizedKey) ?? title;

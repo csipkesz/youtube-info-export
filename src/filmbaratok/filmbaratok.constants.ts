@@ -36,6 +36,28 @@ export const CATEGORY_RULES: {
 ];
 
 /**
+ * A collection of regular expressions used to identify and filter out specific noise patterns
+ * commonly found in podcast metadata or titles. These patterns include identifiers that
+ * denote special types of podcast episodes, such as interviews, series, or celebratory
+ * discussions, as well as references to specific creators.
+ *
+ * Each regular expression in the array is case-insensitive and may optionally capture specific
+ * terms or delimiters that appear in parentheses or as standalone words/phrases within the text.
+ *
+ * Examples of matched patterns:
+ * - Mentions of creators like "freddyD", "Zoly", "Gábor", or "Blacksheep"
+ * - Words or phrases like "kibeszélő", "interjú", "sorozat", or "jubileumi kibeszélő"
+ * - Variants of phrases enclosed with parentheses (e.g., "(interjú)", "(kibeszélő)", etc.)
+ */
+export const PODCAST_NOISE_PATTERNS: RegExp[] = [
+  /\(\s*(?:freddyD?|Zoly|Gábor|Blacksheep)\s*(?:kiadás|filmje)?\s*\)/gi,
+  /\(\s*\+?\s*interjú\s*\)/gi,
+  /\(\s*kibeszélő\s*\)/gi,
+  /\(\s*sorozat\s*\)/gi,
+  /\bjubileumi\s+kibeszélő\b/gi,
+];
+
+/**
  * A collection of non-media related topics or categories used for content organization or filtering.
  * This array contains a variety of strings representing thematic labels, section identifiers, and
  * specialized content-related terms. These topics indicate areas not explicitly tied to media,
@@ -94,6 +116,7 @@ export const NON_MEDIA_TOPICS = [
   'Felvezető',
   'Felveztő',
   'Sztárszignál',
+  'Emberkísérlet az "Öt éjjel Freddy Pizzázójában 2" után',
 ];
 
 /**
@@ -145,6 +168,8 @@ const MEDIA_TITLE_ALIASES: Record<string, string[]> = {
   '12:01': ['12: 01'],
   'A Lego-kaland': ['Lego kaland', 'Lego-kaland'],
   'Shin Gojira': ['Shin Godzilla'],
+  '300': ['300 - Egy jubileumi kibeszélő'],
+  '365 nap: Ma': ['365 nap : Ma'],
 };
 
 /**
