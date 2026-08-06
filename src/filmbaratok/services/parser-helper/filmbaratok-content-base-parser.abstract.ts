@@ -38,6 +38,25 @@ const NON_MEDIA_TOPICS = [
   'hallgató',
   'Oscar',
   'filmév',
+  '1999-es filmeket amiket már kitárgyaltunk',
+  'élménybeszámoló',
+  'nyertes Márkkal',
+  'Vissza a jövőbe trilógia vetítés',
+  'Batman kezdődik keletkezéstörténete',
+  'Partizán Szomszédok videója',
+  'kvíz',
+  'pamkutya',
+  'helyreigazítás',
+  'Madarász Isti',
+  '2016 halottjai',
+  'körbeajándékozás',
+  'Filmek amikről nem lesz szó',
+  'Vége Freddy embargójának',
+  'Levezető',
+  'Nyereményjáték',
+  'Felvezető',
+  'Felveztő',
+  'Sztárszignál',
 ];
 
 const NON_MEDIA_TOPICS_EXCEPTION = ['Oscar (1991)'];
@@ -391,6 +410,46 @@ export abstract class FilmbaratokContentBaseParser {
   }
 
   /**
+   * Parses topic lines from a description string, starting from the line that begins with "Téma".
+   * It collects lines that start with a hyphen ("-") and handles cases where lines may be continued across multiple lines.
+   *
+   * @param description - The description string to parse for topic lines.
+   * @returns An array of topic lines extracted from the description.
+   */
+  protected parseTopicLinesFromDescription(description: string): string[] {
+    const lines = description.split('\n');
+    const themeIndex = lines.findIndex((line) =>
+      line.trim().startsWith('Téma'),
+    );
+    if (themeIndex === -1) {
+      return [];
+    }
+
+    const topicLines: string[] = [];
+    for (let i = themeIndex + 1; i < lines.length; i++) {
+      const line = lines[i].trim();
+
+      if (line.startsWith('-')) {
+        topicLines.push(line);
+        continue;
+      }
+
+      if (
+        topicLines.length > 0 &&
+        this.hasUnbalancedOpenParen(topicLines[topicLines.length - 1])
+      ) {
+        // Az előző sor nyitott zárójellel végződött -> ez valószínűleg annak folytatása
+        topicLines[topicLines.length - 1] += ' ' + line;
+        continue;
+      }
+
+      break;
+    }
+
+    return topicLines.map((line) => line.trim()).filter(Boolean);
+  }
+
+  /**
    * Converts a time string in the format "HH:MM:SS" or "MM:SS" to the total number of seconds.
    *
    * @param timeText - The time string to convert.
@@ -406,5 +465,17 @@ export abstract class FilmbaratokContentBaseParser {
 
     const [minutes, seconds] = parts;
     return minutes * 60 + seconds;
+  }
+
+  /**
+   * Checks if the given text has unbalanced open parentheses.
+   *
+   * @param text - The text to check for unbalanced parentheses.
+   * @returns True if there are more open parentheses than close parentheses; otherwise, false.
+   */
+  protected hasUnbalancedOpenParen(text: string): boolean {
+    const openCount = (text.match(/\(/g) ?? []).length;
+    const closeCount = (text.match(/\)/g) ?? []).length;
+    return openCount > closeCount;
   }
 }

@@ -11,6 +11,7 @@ import { FilmbaratokContentOtherParserService } from './services/parser-helper/f
 import { FilmbaratokContentExpressParserService } from './services/parser-helper/filmbaratok-content-express-parser.service';
 import { FilmbaratokContentAudioCommentaryParserService } from './services/parser-helper/filmbaratok-content-audio-commentary-parser.service';
 import { FilmbaratokContentTopic } from './entities/filmbaratok-content-topic.entity';
+import { TmdbModule } from './sub/tmdb/tmdb.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { FilmbaratokContentTopic } from './entities/filmbaratok-content-topic.en
       FilmbaratokContentTopic,
     ]),
     YoutubeModule,
+    TmdbModule,
   ],
   providers: [
     FilmbaratokParserService,

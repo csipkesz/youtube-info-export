@@ -46,9 +46,7 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
 
     const episodeInfo = this.extractEpisodeInfo(descriptionLines);
 
-    const topics = this.extractTopics(descriptionLines, {
-      ytVideoId: video.resourceVideoId,
-    });
+    const topics = this.parseTopicLinesFromDescription(video.description);
 
     const persons: FilmbaratokPerson[] = [];
     const personNames = this.extractPersons(descriptionLines, {
@@ -88,59 +86,6 @@ export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBa
       episodeNumber: Number(match[1]),
       durationInMinutes: Number(match[2]),
     };
-  }
-
-  /**
-   * Extracts a list of topics from an array of lines, starting from the line containing the keyword "Téma".
-   * It processes the lines to ensure continuity for topics that span multiple lines and parses them into structured topics.
-   *
-   * @param {string[]} lines - The array of strings representing lines to parse for topics.
-   * @param {Object} [context] - Optional context object providing additional information.
-   * @param {string} [context.ytVideoId] - Optional YouTube video ID for context when logging warnings.
-   * @return {FilmbaratokContentTopic[]} An array of parsed topics, or an empty array if no topics are extracted.
-   */
-  private extractTopics(
-    lines: string[],
-    context?: { ytVideoId?: string },
-  ): string[] {
-    const themeIndex = lines.findIndex((line) =>
-      line.trim().startsWith('Téma'),
-    );
-    if (themeIndex === -1) {
-      console.warn(
-        `[extractTopics] No "Téma" line found${context?.ytVideoId ? ` (video ${context.ytVideoId})` : ''}`,
-      );
-      return [];
-    }
-
-    const topicLines: string[] = [];
-    for (let i = themeIndex + 1; i < lines.length; i++) {
-      const line = lines[i].trim();
-
-      if (line.startsWith('-')) {
-        topicLines.push(line);
-        continue;
-      }
-
-      if (
-        topicLines.length > 0 &&
-        this.hasUnbalancedOpenParen(topicLines[topicLines.length - 1])
-      ) {
-        // Az előző sor nyitott zárójellel végződött -> ez valószínűleg annak folytatása
-        topicLines[topicLines.length - 1] += ' ' + line;
-        continue;
-      }
-
-      break;
-    }
-
-    return topicLines.map((line) => line.trim()).filter(Boolean);
-  }
-
-  private hasUnbalancedOpenParen(text: string): boolean {
-    const openCount = (text.match(/\(/g) ?? []).length;
-    const closeCount = (text.match(/\)/g) ?? []).length;
-    return openCount > closeCount;
   }
 
   private extractPersons(

@@ -6,7 +6,13 @@ import { FilmbaratokContent } from '../entities/filmbaratok-content.entity';
 import { In, Repository } from 'typeorm';
 import { FilmbaratokPerson } from '../entities/filmbaratok-person.entity';
 import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
-import { FilmbaratokParserHelperService } from './parser-helper/filmbaratok-parser-helper.service';
+import {
+  FilmbaratokParserHelperService,
+  TmdbSyncReport,
+} from './parser-helper/filmbaratok-parser-helper.service';
+import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
+import * as fs from 'node:fs/promises';
+import * as path from 'node:path';
 
 const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
   {
@@ -28,6 +34,27 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
   },
 ];
 
+/**
+ * Megoldandó összevont topic-media:
+ * - Mátrix trilógia
+ * - Így neveld a sárkányod 1-2
+ * - Shop Stop 1-2
+ * - Van több 1-2
+ *
+ * Megoldandó media aliasok:
+ * - the witcher és The Witcher / Vaják összevonás
+ * - Shin Godzilla to Shin Gojira
+ * - Lego kaland és LEGO-kaland
+ * - (Zoly)
+ * - (freddyD kiadás)
+ * - 12: 01 to 12:01
+ *
+ * Megoldandó problémák:
+ * - Egy topic, több media
+ * - Tmdb media 6 hónapos kötelező szinkron tmdbUpdate alapján
+ * - contansokat kivinni fájlokba mert kezdenek nagyok lenni
+ */
+
 @Injectable()
 export class FilmbaratokParserService implements OnModuleInit {
   private readonly youtubeChannelId = 'UCejqyGXi812VAJK5emU3OqQ';
@@ -39,13 +66,24 @@ export class FilmbaratokParserService implements OnModuleInit {
     private readonly contentRepo: Repository<FilmbaratokContent>,
     @InjectRepository(FilmbaratokPerson)
     private readonly personRepo: Repository<FilmbaratokPerson>,
+    @InjectRepository(FilmbaratokMedia)
+    private readonly mediaRepo: Repository<FilmbaratokMedia>,
   ) {}
 
   onModuleInit() {
     // this.syncYoutubeChannelWithVideos();
-    this.parseVideosFromDb();
+    this.parseVideosFromDb().then(() => {
+      this.parseMediaWithMovieDatabase();
+    });
   }
 
+  /**
+   * Synchronizes the YouTube channel with its videos, retrieves updated information, and optionally processes the videos.
+   *
+   * @param {Object} options - Configuration options for the synchronization process.
+   * @param {boolean} [options.doParse] - Indicates whether the retrieved videos should be parsed and saved to the database.
+   * @return {Promise<void>} A promise that resolves when the synchronization and optional processing is complete.
+   */
   async syncYoutubeChannelWithVideos(options: { doParse?: boolean } = {}) {
     const result = await this.ytChannelService.syncChannel({
       externalChannelId: this.youtubeChannelId,
@@ -61,6 +99,12 @@ export class FilmbaratokParserService implements OnModuleInit {
     }
   }
 
+  /**
+   * Parses videos from the YouTube channel and stores them into the database.
+   * Utilizes iteration over the channel videos with a defined batch size for optimization.
+   *
+   * @return {Promise<void>} A promise that resolves when all videos have been successfully parsed and stored in the database.
+   */
   async parseVideosFromDb() {
     // At this time we have 623 video on channel. Don't need more complex optimization.
     await this.ytChannelService.iterateChannelVideos(
@@ -72,6 +116,83 @@ export class FilmbaratokParserService implements OnModuleInit {
     );
   }
 
+  /**
+   * Parses media items using a movie database integration to process known and unknown media.
+   * This method fetches all media records, processes them in batches, updates their information,
+   * and generates a report summarizing the processing results.
+   *
+   * @return {Promise<void>} A promise that resolves when the media parsing and report generation are complete.
+   */
+  async parseMediaWithMovieDatabase(): Promise<void> {
+    const report: TmdbSyncReport = {
+      mediaWithoutResult: [],
+      mediaWithMoreResultWithoutFind: [],
+    };
+
+    const listOfMedia = await this.mediaRepo.find();
+
+    const batchSize = 70;
+    for (let i = 0; i < listOfMedia.length; i += batchSize) {
+      const batch = listOfMedia.slice(i, i + batchSize);
+      await Promise.all(
+        batch.map((media) =>
+          media.tmdbId
+            ? this.parserHelper.tmdbProcessKnownMedia(media)
+            : this.parserHelper.tmdbProcessUnknownMedia(media, report),
+        ),
+      );
+    }
+
+    await this.mediaRepo.save(listOfMedia, { chunk: 100 });
+
+    console.log(`Overall processing of ${listOfMedia.length} media finished.`);
+    console.log(`Media without result: ${report.mediaWithoutResult.length}`);
+    console.log(
+      `Media with more result and not found: ${report.mediaWithMoreResultWithoutFind.length}`,
+    );
+
+    await this.createMovieDBReportData({
+      generatedAt: new Date().toISOString(),
+      summary: {
+        totalProcessed: listOfMedia.length,
+        withoutResultCount: report.mediaWithoutResult.length,
+        withMoreResultWithoutFindCount:
+          report.mediaWithMoreResultWithoutFind.length,
+      },
+      ...report,
+    });
+  }
+
+  /**
+   * Creates a movie database report file in JSON format and saves it to the disk.
+   *
+   * @param {any} data - The data to be included in the generated report.
+   * @return {Promise<void>} A promise that resolves when the report file is successfully saved.
+   */
+  private async createMovieDBReportData(data: any) {
+    const outputDir = path.join(process.cwd(), 'reports');
+    const filePath = path.join(
+      outputDir,
+      `tmdb-parse-report-${Date.now()}.json`,
+    );
+
+    try {
+      await fs.mkdir(outputDir, { recursive: true });
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+
+      console.log(`Report successfully saved to: ${filePath}`);
+    } catch (err) {
+      console.error('Failed to write JSON report file:', err);
+    }
+  }
+
+  /**
+   * Parses an array of YouTube videos and updates the database with the parsed information.
+   * Processes videos by categories, including podcasts and non-podcasts, and ensures that existing content does not get duplicated.
+   *
+   * @param {YoutubeVideo[]} youtubeVideos - The array of YouTube videos to be parsed and saved to the database. Each video should contain information such as title and resource ID.
+   * @return {Promise<void>} A Promise that resolves when the parsing and database update is complete. Returns immediately if the input array is empty.
+   */
   private async parseVideosToDb(youtubeVideos: YoutubeVideo[]) {
     if (!youtubeVideos.length) {
       return;
