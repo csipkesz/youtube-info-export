@@ -10,12 +10,7 @@ import {
   NON_MEDIA_TOPICS_EXCEPTION,
 } from '../../filmbaratok.constants';
 import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
-
-interface MediaTitleInfo {
-  title: string;
-  subtitle?: string;
-  isSpoiler: boolean;
-}
+import { FilmbaratokMediaTitleInfo } from '../../interfaces/filmbaratok-media-title-info.interface';
 
 export abstract class FilmbaratokContentBaseParser {
   private static readonly SEASON_PATTERN =
@@ -77,9 +72,10 @@ export abstract class FilmbaratokContentBaseParser {
       return;
     }
 
-    const mediaInfoByTopic = new Map<FilmbaratokContentTopic, MediaTitleInfo>(
-      mediaTopics.map((topic) => [topic, this.parseMediaTitle(topic.title)]),
-    );
+    const mediaInfoByTopic = new Map<
+      FilmbaratokContentTopic,
+      FilmbaratokMediaTitleInfo
+    >(mediaTopics.map((topic) => [topic, this.parseMediaTitle(topic.title)]));
 
     const existingMediaIdByKey = await this.loadExistingMediaIds(
       [...mediaInfoByTopic.values()].map((info) => info.title),
@@ -138,7 +134,7 @@ export abstract class FilmbaratokContentBaseParser {
    * @param rawTitle - The raw media title to parse.
    * @returns An object containing the cleaned title and a boolean indicating if it is a spoiler.
    */
-  protected parseMediaTitle(rawTitle: string): MediaTitleInfo {
+  protected parseMediaTitle(rawTitle: string): FilmbaratokMediaTitleInfo {
     let isSpoiler = false;
     let title = rawTitle;
 
