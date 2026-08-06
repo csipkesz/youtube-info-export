@@ -13,12 +13,6 @@ import * as path from 'node:path';
 import { CATEGORY_RULES } from '../filmbaratok.constants';
 import { TmdbSyncReport } from '../interfaces/tmdb-sync-report.interface';
 
-/**
- * Megoldandó media aliasok:
- * - (Zoly)
- * - (freddyD kiadás)
- */
-
 @Injectable()
 export class FilmbaratokParserService implements OnModuleInit {
   private readonly youtubeChannelId = 'UCejqyGXi812VAJK5emU3OqQ';
