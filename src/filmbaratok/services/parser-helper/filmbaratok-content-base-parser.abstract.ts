@@ -5,71 +5,12 @@ import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
 import { plainToInstance } from 'class-transformer';
 import { FilmbaratokContentTopic } from '../../entities/filmbaratok-content-topic.entity';
-
-const NON_MEDIA_TOPICS = [
-  'Felvezetés',
-  'Borítókép',
-  'Nép akarata',
-  'Villámkérdés',
-  'Oscar jelöltek',
-  'Keresés',
-  'Rovat',
-  'Előbeszélgetés',
-  'Beszélgetés',
-  'Vendégünk',
-  'Évösszegz',
-  'Évösszegző',
-  'kérdőív',
-  'Cinefest',
-  'Franchise',
-  'Megosztás',
-  'Jubileumi adás',
-  'éves a Filmbarátok Podcast',
-  '. adást',
-  'Hallgatói kérdés',
-  'Vélemények bizonyos film',
-  'Rendezői tapasztalat',
-  'Kérdéseitekre válaszol',
-  'filmgyűjtés mint szenvedély',
-  'Közönség',
-  'zárthelyi',
-  'Szavazás',
-  'filmosztás',
-  'hallgató',
-  'Oscar',
-  'filmév',
-  '1999-es filmeket amiket már kitárgyaltunk',
-  'élménybeszámoló',
-  'nyertes Márkkal',
-  'Vissza a jövőbe trilógia vetítés',
-  'Batman kezdődik keletkezéstörténete',
-  'Partizán Szomszédok videója',
-  'kvíz',
-  'pamkutya',
-  'helyreigazítás',
-  'Madarász Isti',
-  '2016 halottjai',
-  'körbeajándékozás',
-  'Filmek amikről nem lesz szó',
-  'Vége Freddy embargójának',
-  'Levezető',
-  'Nyereményjáték',
-  'Felvezető',
-  'Felveztő',
-  'Sztárszignál',
-];
-
-const NON_MEDIA_TOPICS_EXCEPTION = ['Oscar (1991)'];
-
-export interface FilmbaratokContentParserMaps {
-  persons: Map<string, FilmbaratokPerson>;
-}
-
-interface MediaTitleInfo {
-  title: string;
-  subtitle?: string;
-  isSpoiler: boolean;
-}
+import {
+  NON_MEDIA_TOPICS,
+  NON_MEDIA_TOPICS_EXCEPTION,
+} from '../../filmbaratok.constants';
+import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
+import { FilmbaratokMediaTitleInfo } from '../../interfaces/filmbaratok-media-title-info.interface';
 
 export abstract class FilmbaratokContentBaseParser {
   private static readonly SEASON_PATTERN =
@@ -131,9 +72,10 @@ export abstract class FilmbaratokContentBaseParser {
       return;
     }
 
-    const mediaInfoByTopic = new Map<FilmbaratokContentTopic, MediaTitleInfo>(
-      mediaTopics.map((topic) => [topic, this.parseMediaTitle(topic.title)]),
-    );
+    const mediaInfoByTopic = new Map<
+      FilmbaratokContentTopic,
+      FilmbaratokMediaTitleInfo
+    >(mediaTopics.map((topic) => [topic, this.parseMediaTitle(topic.title)]));
 
     const existingMediaIdByKey = await this.loadExistingMediaIds(
       [...mediaInfoByTopic.values()].map((info) => info.title),
@@ -192,7 +134,7 @@ export abstract class FilmbaratokContentBaseParser {
    * @param rawTitle - The raw media title to parse.
    * @returns An object containing the cleaned title and a boolean indicating if it is a spoiler.
    */
-  protected parseMediaTitle(rawTitle: string): MediaTitleInfo {
+  protected parseMediaTitle(rawTitle: string): FilmbaratokMediaTitleInfo {
     let isSpoiler = false;
     let title = rawTitle;
 

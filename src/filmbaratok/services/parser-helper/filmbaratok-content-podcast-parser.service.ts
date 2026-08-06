@@ -1,29 +1,13 @@
 import { Injectable } from '@nestjs/common';
-import {
-  FilmbaratokContentBaseParser,
-  FilmbaratokContentParserMaps,
-} from './filmbaratok-content-base-parser.abstract';
+import { FilmbaratokContentBaseParser } from './filmbaratok-content-base-parser.abstract';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { Repository } from 'typeorm';
 import { YoutubeVideo } from '../../../youtube/entities/youtube-video.entity';
 import { FilmbaratokContent } from '../../entities/filmbaratok-content.entity';
 import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
-
-/**
- * Persons have similar name but separated by some sign.
- * Like: Gábor, Gábor (videodrom), Szöllőskei Gábor
- */
-const KNOWN_PERSON_NAMES = [
-  'Gábor (Videodrome)',
-  'Madarász Isti',
-  'Szöllőskei Gábor',
-  'Gigor Attila',
-  'Hajdu Szabolcs',
-  'Schwechtje Mihály',
-  'Stöckert Gábor',
-  'Ódor Kristóf',
-];
+import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
+import { KNOWN_PERSON_NAMES } from '../../filmbaratok.constants';
 
 @Injectable()
 export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBaseParser {

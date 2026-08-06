@@ -7,39 +7,13 @@ import { FilmbaratokContentAudioCommentaryParserService } from './filmbaratok-co
 import { TmdbService } from '../../sub/tmdb/tmdb.service';
 import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { diceCoefficient } from 'dice-coefficient';
-
-type TmdbMovieResult = Awaited<ReturnType<TmdbService['getMovie']>>;
-type TmdbSerieResult = Awaited<ReturnType<TmdbService['getSerie']>>;
-type TmdbSearchItem = Awaited<
-  ReturnType<TmdbService['searchMulti']>
->['results'][number];
-
-interface TmdbMediaPatch {
-  tmdbId: number;
-  mediaType: 'movie' | 'tv';
-  originalTitle: string | null;
-  overview: string | null;
-  backdropPath: string | null;
-  posterPath: string | null;
-  releaseDate: Date | null;
-}
-
-export interface TmdbMediaNotFoundEntry {
-  id: string;
-  title: string;
-}
-
-export interface TmdbMediaAmbiguousEntry {
-  id: string;
-  title: string;
-  lastScore: number;
-  results: Awaited<ReturnType<TmdbService['searchMulti']>>;
-}
-
-export interface TmdbSyncReport {
-  mediaWithoutResult: TmdbMediaNotFoundEntry[];
-  mediaWithMoreResultWithoutFind: TmdbMediaAmbiguousEntry[];
-}
+import {
+  TmdbMovieResult,
+  TmdbSearchItem,
+  TmdbSerieResult,
+} from '../../sub/tmdb/tmdb.types';
+import { TmdbSyncReport } from '../../interfaces/tmdb-sync-report.interface';
+import { TmdbFilmbaratokMediaPatch } from '../../interfaces/tmdb-filmbaratok-media-patch.interface';
 
 @Injectable()
 export class FilmbaratokParserHelperService {
@@ -72,7 +46,7 @@ export class FilmbaratokParserHelperService {
    */
   private applyTmdbMediaPatch(
     media: FilmbaratokMedia,
-    patch: TmdbMediaPatch,
+    patch: TmdbFilmbaratokMediaPatch,
   ): void {
     media.tmdbId = patch.tmdbId;
     media.mediaType = patch.mediaType;
@@ -160,9 +134,11 @@ export class FilmbaratokParserHelperService {
    * Converts a TMDB search item into a media patch object.
    *
    * @param {TmdbSearchItem} item - The TMDB search item to be converted.
-   * @return {TmdbMediaPatch} The transformed media patch object.
+   * @return {TmdbFilmbaratokMediaPatch} The transformed media patch object.
    */
-  private tmdbMultiItemToMediaPatch(item: TmdbSearchItem): TmdbMediaPatch {
+  private tmdbMultiItemToMediaPatch(
+    item: TmdbSearchItem,
+  ): TmdbFilmbaratokMediaPatch {
     return {
       tmdbId: item.id,
       mediaType: item.media_type,
@@ -178,9 +154,11 @@ export class FilmbaratokParserHelperService {
    * Converts a TmdbMovieResult object into a TmdbMediaPatch object suitable for further processing.
    *
    * @param {TmdbMovieResult} result - The TMDb movie result object containing movie details.
-   * @return {TmdbMediaPatch} A media patch object containing the essential properties extracted from the input.
+   * @return {TmdbFilmbaratokMediaPatch} A media patch object containing the essential properties extracted from the input.
    */
-  private tmdbMovieToMediaPatch(result: TmdbMovieResult): TmdbMediaPatch {
+  private tmdbMovieToMediaPatch(
+    result: TmdbMovieResult,
+  ): TmdbFilmbaratokMediaPatch {
     return {
       tmdbId: result.id,
       mediaType: 'movie',
@@ -196,9 +174,11 @@ export class FilmbaratokParserHelperService {
    * Converts a TmdbSerieResult object into a TmdbMediaPatch object.
    *
    * @param {TmdbSerieResult} result - The TMDB series data to be transformed.
-   * @return {TmdbMediaPatch} A formatted media patch object containing relevant series information.
+   * @return {TmdbFilmbaratokMediaPatch} A formatted media patch object containing relevant series information.
    */
-  private tmdbSerieToMediaPatch(result: TmdbSerieResult): TmdbMediaPatch {
+  private tmdbSerieToMediaPatch(
+    result: TmdbSerieResult,
+  ): TmdbFilmbaratokMediaPatch {
     return {
       tmdbId: result.id,
       mediaType: 'tv',

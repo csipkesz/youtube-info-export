@@ -6,33 +6,12 @@ import { FilmbaratokContent } from '../entities/filmbaratok-content.entity';
 import { In, Repository } from 'typeorm';
 import { FilmbaratokPerson } from '../entities/filmbaratok-person.entity';
 import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
-import {
-  FilmbaratokParserHelperService,
-  TmdbSyncReport,
-} from './parser-helper/filmbaratok-parser-helper.service';
+import { FilmbaratokParserHelperService } from './parser-helper/filmbaratok-parser-helper.service';
 import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-
-const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
-  {
-    pattern: /Filmb[aá]r[aá]tok\s+Expressz/i,
-    category: FilmbaratokCategory.EXPRESS,
-  },
-  {
-    pattern: /Filmbarátok\s+audiokommentár/i,
-    category: FilmbaratokCategory.AUDIO_COMMENTARY,
-  },
-  {
-    pattern: /Filmbarátok\s+z[aá]rt/i,
-    category: FilmbaratokCategory.ON_SITE,
-  },
-  { pattern: /Filmbarátok\s+játszanak/i, category: FilmbaratokCategory.GAME },
-  {
-    pattern: /Filmbarátok\s+Podcast\s+#\d+/i,
-    category: FilmbaratokCategory.PODCAST,
-  },
-];
+import { CATEGORY_RULES } from '../filmbaratok.constants';
+import { TmdbSyncReport } from '../interfaces/tmdb-sync-report.interface';
 
 /**
  * Megoldandó összevont topic-media:
@@ -51,7 +30,6 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
  *
  * Megoldandó problémák:
  * - Egy topic, több media
- * - Tmdb media 6 hónapos kötelező szinkron tmdbUpdate alapján
  * - contansokat kivinni fájlokba mert kezdenek nagyok lenni
  */
 
@@ -72,9 +50,9 @@ export class FilmbaratokParserService implements OnModuleInit {
 
   onModuleInit() {
     // this.syncYoutubeChannelWithVideos();
-    this.parseVideosFromDb().then(() => {
-      this.parseMediaWithMovieDatabase();
-    });
+    // this.parseVideosFromDb().then(() => {
+    //   this.parseMediaWithMovieDatabase();
+    // });
   }
 
   /**
