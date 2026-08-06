@@ -7,12 +7,11 @@ import { FilmbaratokContentAudioCommentaryParserService } from './filmbaratok-co
 import { TmdbService } from '../../sub/tmdb/tmdb.service';
 import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { diceCoefficient } from 'dice-coefficient';
-
-type TmdbMovieResult = Awaited<ReturnType<TmdbService['getMovie']>>;
-type TmdbSerieResult = Awaited<ReturnType<TmdbService['getSerie']>>;
-type TmdbSearchItem = Awaited<
-  ReturnType<TmdbService['searchMulti']>
->['results'][number];
+import {
+  TmdbMovieResult,
+  TmdbSearchItem,
+  TmdbSerieResult,
+} from '../../sub/tmdb/tmdb.types';
 
 interface TmdbMediaPatch {
   tmdbId: number;
