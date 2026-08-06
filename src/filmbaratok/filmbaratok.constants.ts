@@ -117,3 +117,62 @@ export const KNOWN_PERSON_NAMES = [
   'Stöckert Gábor',
   'Ódor Kristóf',
 ];
+
+/**
+ * A record that maps specific media titles or categories to their respective expansions or alternative names.
+ * This can be used to associate a primary media title with its related titles or sequels.
+ *
+ * @typedef {Record<string, string[]>} MEDIA_TITLE_EXPANSION_ALIASES
+ * @property {string[]} [key] - An array of expanded titles or sequels associated with the key title or category.
+ */
+export const MEDIA_TITLE_EXPANSION_ALIASES: Record<string, string[]> = {
+  'mátrix trilógia': ['Mátrix', 'Mátrix - Újratöltve', 'Mátrix - Forradalmak'],
+};
+
+/**
+ * A mapping of media titles to their respective aliases.
+ * This is used to standardize and account for different name variations of media titles.
+ *
+ * Each key in the record represents the standard title of a media work, and its corresponding value is an array of alternative aliases by which the media work may be known.
+ * These aliases can include different translations, misspellings, regional variations, or stylistic differences.
+ *
+ * Example entries:
+ * - "Vaják" maps to an array containing 'the witcher' and 'The Witcher / Vaják'.
+ * - "12:01" maps to ['12: 01'], accounting for spacing differences.
+ */
+const MEDIA_TITLE_ALIASES: Record<string, string[]> = {
+  ['Vaják']: ['the witcher', 'The Witcher / Vaják'],
+  '12:01': ['12: 01'],
+  'A Lego-kaland': ['Lego kaland', 'Lego-kaland'],
+  'Shin Gojira': ['Shin Godzilla'],
+};
+
+/**
+ * A mapping of media title aliases to their corresponding primary media titles.
+ * This variable is implemented as a Map where the keys represent alternative
+ * names, abbreviations, or aliases for media titles, and the values represent
+ * the corresponding canonical or primary media titles.
+ *
+ * Intended for use in scenarios where media titles may be referenced
+ * inconsistently or with alternative names, ensuring a standardized
+ * representation of the titles.
+ *
+ * Example usage scenarios include:
+ * - Resolving user input to a canonical media title.
+ * - Providing consistent references to media titles in applications or systems
+ *   that aggregate information from multiple sources.
+ *
+ *   TODO: FIND A BETTER WAY TO FILL IT UP OR IDK
+ */
+export const MEDIA_TITLE_ALIASES_LOOKUP = new Map<string, string>();
+for (const [canonicalTitle, aliases] of Object.entries(MEDIA_TITLE_ALIASES)) {
+  for (const alias of aliases) {
+    // Normalizálunk (kisbetű, ékezetek nélkül, trim), hogy pl. "LEGO Kaland" is match-eljen a "Lego kaland"-ra
+    const normalizedAlias = alias
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+    MEDIA_TITLE_ALIASES_LOOKUP.set(normalizedAlias, canonicalTitle);
+  }
+}

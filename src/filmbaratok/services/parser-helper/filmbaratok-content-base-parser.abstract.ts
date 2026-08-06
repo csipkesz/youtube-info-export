@@ -6,19 +6,13 @@ import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
 import { plainToInstance } from 'class-transformer';
 import { FilmbaratokContentTopic } from '../../entities/filmbaratok-content-topic.entity';
 import {
+  MEDIA_TITLE_ALIASES_LOOKUP,
+  MEDIA_TITLE_EXPANSION_ALIASES,
   NON_MEDIA_TOPICS,
   NON_MEDIA_TOPICS_EXCEPTION,
 } from '../../filmbaratok.constants';
 import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
 import { FilmbaratokMediaTitleInfo } from '../../interfaces/filmbaratok-media-title-info.interface';
-
-/**
- * Ismert, kézzel karbantartott aliasok, ahol egy topic-cím valójában több,
- * önálló médiát takar (pl. trilógiák, franchise-ok).
- */
-const MEDIA_TITLE_EXPANSION_ALIASES: Record<string, string[]> = {
-  'mátrix trilógia': ['Mátrix', 'Mátrix - Újratöltve', 'Mátrix - Forradalmak'],
-};
 
 export abstract class FilmbaratokContentBaseParser {
   private static readonly SEASON_PATTERN =
@@ -217,6 +211,9 @@ export abstract class FilmbaratokContentBaseParser {
       .replace(/[([]\s*[)\]]/g, '')
       .trim();
 
+    // Fix typos and set canonical title for better media sync
+    title = this.resolveCanonicalMediaTitle(title);
+
     if (isSpoiler)
       console.log(
         `[parseMediaTitle] Parsed media title: "${rawTitle}" -> "${title}", isSpoiler: ${isSpoiler ? 'true' : 'false'}`,
@@ -227,6 +224,11 @@ export abstract class FilmbaratokContentBaseParser {
       subtitle,
       isSpoiler,
     };
+  }
+
+  protected resolveCanonicalMediaTitle(title: string): string {
+    const normalizedKey = this.normalizeMediaKey(title);
+    return MEDIA_TITLE_ALIASES_LOOKUP.get(normalizedKey) ?? title;
   }
 
   /**

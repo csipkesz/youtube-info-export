@@ -14,22 +14,9 @@ import { CATEGORY_RULES } from '../filmbaratok.constants';
 import { TmdbSyncReport } from '../interfaces/tmdb-sync-report.interface';
 
 /**
- * Megoldandó összevont topic-media:
- * - Mátrix trilógia
- * - Így neveld a sárkányod 1-2
- * - Shop Stop 1-2
- * - Van több 1-2
- *
  * Megoldandó media aliasok:
- * - the witcher és The Witcher / Vaják összevonás
- * - Shin Godzilla to Shin Gojira
- * - Lego kaland és LEGO-kaland
  * - (Zoly)
  * - (freddyD kiadás)
- * - 12: 01 to 12:01
- *
- * Megoldandó problémák:
- * - Egy topic, több media
  */
 
 @Injectable()
@@ -49,9 +36,9 @@ export class FilmbaratokParserService implements OnModuleInit {
 
   onModuleInit() {
     // this.syncYoutubeChannelWithVideos();
-    // this.parseVideosFromDb().then(() => {
-    //   this.parseMediaWithMovieDatabase();
-    // });
+    this.parseVideosFromDb().then(() => {
+      this.parseMediaWithMovieDatabase();
+    });
   }
 
   /**
