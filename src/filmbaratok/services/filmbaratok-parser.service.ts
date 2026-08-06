@@ -38,6 +38,7 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
  * - Mátrix trilógia
  * - Így neveld a sárkányod 1-2
  * - Shop Stop 1-2
+ * - Van több 1-2
  *
  * Megoldandó media aliasok:
  * - the witcher és The Witcher / Vaják összevonás
@@ -51,6 +52,7 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
  * - Egy topic, több media
  * - Tmdb szinkronnál, ha a media össze van már kapcsolva, akkor mediaType alapján kérjük le az infókat.
  * - Tmdb media 6 hónapos kötelező szinkron tmdbUpdate alapján
+ * - contansokat kivinni fájlokba mert kezdenek nagyok lenni
  */
 
 @Injectable()
