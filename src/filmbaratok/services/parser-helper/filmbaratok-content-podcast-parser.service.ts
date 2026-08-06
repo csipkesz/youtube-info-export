@@ -7,21 +7,7 @@ import { YoutubeVideo } from '../../../youtube/entities/youtube-video.entity';
 import { FilmbaratokContent } from '../../entities/filmbaratok-content.entity';
 import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
 import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
-
-/**
- * Persons have similar name but separated by some sign.
- * Like: Gábor, Gábor (videodrom), Szöllőskei Gábor
- */
-const KNOWN_PERSON_NAMES = [
-  'Gábor (Videodrome)',
-  'Madarász Isti',
-  'Szöllőskei Gábor',
-  'Gigor Attila',
-  'Hajdu Szabolcs',
-  'Schwechtje Mihály',
-  'Stöckert Gábor',
-  'Ódor Kristóf',
-];
+import { KNOWN_PERSON_NAMES } from '../../filmbaratok.constants';
 
 @Injectable()
 export class FilmbaratokContentPodcastParserService extends FilmbaratokContentBaseParser {

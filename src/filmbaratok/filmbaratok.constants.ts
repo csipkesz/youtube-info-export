@@ -102,3 +102,18 @@ export const NON_MEDIA_TOPICS = [
  * Like we filter out the topics where the participants talk about Oscar gala, but also talk about the Oscar movie.
  */
 export const NON_MEDIA_TOPICS_EXCEPTION = ['Oscar (1991)'];
+
+/**
+ * Persons have similar name but separated by some sign.
+ * Like: Gábor, Gábor (videodrom), Szöllőskei Gábor
+ */
+export const KNOWN_PERSON_NAMES = [
+  'Gábor (Videodrome)',
+  'Madarász Isti',
+  'Szöllőskei Gábor',
+  'Gigor Attila',
+  'Hajdu Szabolcs',
+  'Schwechtje Mihály',
+  'Stöckert Gábor',
+  'Ódor Kristóf',
+];
