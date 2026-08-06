@@ -12,6 +12,14 @@ import {
 import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
 import { FilmbaratokMediaTitleInfo } from '../../interfaces/filmbaratok-media-title-info.interface';
 
+/**
+ * Ismert, kézzel karbantartott aliasok, ahol egy topic-cím valójában több,
+ * önálló médiát takar (pl. trilógiák, franchise-ok).
+ */
+const MEDIA_TITLE_EXPANSION_ALIASES: Record<string, string[]> = {
+  'mátrix trilógia': ['Mátrix', 'Mátrix - Újratöltve', 'Mátrix - Forradalmak'],
+};
+
 export abstract class FilmbaratokContentBaseParser {
   private static readonly SEASON_PATTERN =
     /(?:sorozatajánló\s*&\s*)?(?:kibeszélés\s+)?\d+(?:[-&]\d+)?\s*\.?\s*évad(?:\s*\/\s*\d+(?:-\d+)?\s*\.?\s*(?:évad|rész)?)?(?:\s*kisfinálé)?(?:\s*\([^()]*\))?/gi;
@@ -64,6 +72,38 @@ export abstract class FilmbaratokContentBaseParser {
     return topics;
   }
 
+  private expandMediaTitles(title: string): string[] {
+    const aliasKey = title.toLowerCase().trim();
+    const knownExpansion = MEDIA_TITLE_EXPANSION_ALIASES[aliasKey];
+    if (knownExpansion) {
+      return knownExpansion;
+    }
+
+    // Title N-M
+    const rangeMatch = title.match(/^(.*\S)\s+(\d+)\s*[-–]\s*(\d+)$/);
+    if (rangeMatch) {
+      const [, base, startStr, endStr] = rangeMatch;
+      const start = Number(startStr);
+      const end = Number(endStr);
+      if (end > start && end - start <= 5) {
+        const titles: string[] = [];
+        for (let i = start; i <= end; i++) {
+          titles.push(`${base} ${i}`);
+        }
+        return titles;
+      }
+    }
+
+    // "Title N és M" / "Title N & M"
+    const andMatch = title.match(/^(.*\S)\s+(\d+)\s*(?:és|&)\s*(\d+)$/i);
+    if (andMatch) {
+      const [, base, a, b] = andMatch;
+      return [`${base} ${a}`, `${base} ${b}`];
+    }
+
+    return [title];
+  }
+
   private async resolveTopicMedias(
     topics: FilmbaratokContentTopic[],
   ): Promise<void> {
@@ -72,32 +112,37 @@ export abstract class FilmbaratokContentBaseParser {
       return;
     }
 
-    const mediaInfoByTopic = new Map<
+    const expansionByTopic = new Map<
       FilmbaratokContentTopic,
-      FilmbaratokMediaTitleInfo
-    >(mediaTopics.map((topic) => [topic, this.parseMediaTitle(topic.title)]));
-
-    const existingMediaIdByKey = await this.loadExistingMediaIds(
-      [...mediaInfoByTopic.values()].map((info) => info.title),
+      { info: FilmbaratokMediaTitleInfo; titles: string[] }
+    >(
+      mediaTopics.map((topic) => {
+        const info = this.parseMediaTitle(topic.title);
+        const titles = this.expandMediaTitles(info.title);
+        return [topic, { info, titles }];
+      }),
     );
+
+    const allTitles = [...expansionByTopic.values()].flatMap((v) => v.titles);
+    const existingMediaIdByKey = await this.loadExistingMediaIds(allTitles);
 
     const resolvedMediaByKey = new Map<string, FilmbaratokMedia>();
 
     for (const topic of mediaTopics) {
-      const info = mediaInfoByTopic.get(topic)!;
+      const { info, titles } = expansionByTopic.get(topic)!;
       topic.isSpoiler = info.isSpoiler;
       topic.subtitle = info.subtitle || null;
 
-      const key = this.normalizeMediaKey(info.title);
-
-      let media = resolvedMediaByKey.get(key);
-      if (!media) {
-        const existingId = existingMediaIdByKey.get(key);
-        media = this.mediaRepo.create({ title: info.title, id: existingId });
-        resolvedMediaByKey.set(key, media);
-      }
-
-      topic.media = media;
+      topic.medias = titles.map((title) => {
+        const key = this.normalizeMediaKey(title);
+        let media = resolvedMediaByKey.get(key);
+        if (!media) {
+          const existingId = existingMediaIdByKey.get(key);
+          media = this.mediaRepo.create({ title, id: existingId });
+          resolvedMediaByKey.set(key, media);
+        }
+        return media;
+      });
     }
 
     await this.mediaRepo.save([...resolvedMediaByKey.values()]);
