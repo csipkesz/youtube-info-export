@@ -1,4 +1,4 @@
-import { Column, Entity, OneToMany } from 'typeorm';
+import { Column, Entity, ManyToMany } from 'typeorm';
 import { BaseEntity } from '../../common/db/entities/base.entity';
 import { FilmbaratokContentTopic } from './filmbaratok-content-topic.entity';
 
@@ -10,7 +10,7 @@ export class FilmbaratokMedia extends BaseEntity {
   @Column({ type: 'varchar', length: 100, nullable: true })
   originalTitle: string | null;
 
-  @OneToMany(() => FilmbaratokContentTopic, (topic) => topic.media, {
+  @ManyToMany(() => FilmbaratokContentTopic, (topic) => topic.medias, {
     onDelete: 'CASCADE',
   })
   topics: FilmbaratokContentTopic[];
