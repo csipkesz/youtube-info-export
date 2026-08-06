@@ -1,4 +1,11 @@
-import { Column, Entity, ManyToOne, type Relation } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  ManyToOne,
+  type Relation,
+} from 'typeorm';
 import { BaseEntity } from '../../common/db/entities/base.entity';
 import { FilmbaratokContent } from './filmbaratok-content.entity';
 import { FilmbaratokMedia } from './filmbaratok-media.entity';
@@ -31,12 +38,12 @@ export class FilmbaratokContentTopic extends BaseEntity {
   @Column({ default: false })
   isSpoiler: boolean;
 
-  @ManyToOne(() => FilmbaratokMedia, (media) => media.topics, {
+  @ManyToMany(() => FilmbaratokMedia, (media) => media.topics, {
     onDelete: 'CASCADE',
-    nullable: true,
-    cascade: true,
+    orphanedRowAction: 'delete',
   })
-  media: Relation<FilmbaratokMedia>;
+  @JoinTable()
+  medias: Relation<FilmbaratokMedia[]>;
 
   @Column({ type: 'varchar', nullable: true })
   mediaId: string | null;

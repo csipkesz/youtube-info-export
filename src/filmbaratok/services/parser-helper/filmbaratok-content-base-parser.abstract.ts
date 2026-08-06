@@ -6,8 +6,11 @@ import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
 import { plainToInstance } from 'class-transformer';
 import { FilmbaratokContentTopic } from '../../entities/filmbaratok-content-topic.entity';
 import {
+  MEDIA_TITLE_ALIASES_LOOKUP,
+  MEDIA_TITLE_EXPANSION_ALIASES,
   NON_MEDIA_TOPICS,
   NON_MEDIA_TOPICS_EXCEPTION,
+  PODCAST_NOISE_PATTERNS,
 } from '../../filmbaratok.constants';
 import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
 import { FilmbaratokMediaTitleInfo } from '../../interfaces/filmbaratok-media-title-info.interface';
@@ -64,6 +67,38 @@ export abstract class FilmbaratokContentBaseParser {
     return topics;
   }
 
+  private expandMediaTitles(title: string): string[] {
+    const aliasKey = title.toLowerCase().trim();
+    const knownExpansion = MEDIA_TITLE_EXPANSION_ALIASES[aliasKey];
+    if (knownExpansion) {
+      return knownExpansion;
+    }
+
+    // Title N-M
+    const rangeMatch = title.match(/^(.*\S)\s+(\d+)\s*[-–]\s*(\d+)$/);
+    if (rangeMatch) {
+      const [, base, startStr, endStr] = rangeMatch;
+      const start = Number(startStr);
+      const end = Number(endStr);
+      if (end > start && end - start <= 5) {
+        const titles: string[] = [];
+        for (let i = start; i <= end; i++) {
+          titles.push(`${base} ${i}`);
+        }
+        return titles;
+      }
+    }
+
+    // "Title N és M" / "Title N & M"
+    const andMatch = title.match(/^(.*\S)\s+(\d+)\s*(?:és|&)\s*(\d+)$/i);
+    if (andMatch) {
+      const [, base, a, b] = andMatch;
+      return [`${base} ${a}`, `${base} ${b}`];
+    }
+
+    return [title];
+  }
+
   private async resolveTopicMedias(
     topics: FilmbaratokContentTopic[],
   ): Promise<void> {
@@ -72,32 +107,37 @@ export abstract class FilmbaratokContentBaseParser {
       return;
     }
 
-    const mediaInfoByTopic = new Map<
+    const expansionByTopic = new Map<
       FilmbaratokContentTopic,
-      FilmbaratokMediaTitleInfo
-    >(mediaTopics.map((topic) => [topic, this.parseMediaTitle(topic.title)]));
-
-    const existingMediaIdByKey = await this.loadExistingMediaIds(
-      [...mediaInfoByTopic.values()].map((info) => info.title),
+      { info: FilmbaratokMediaTitleInfo; titles: string[] }
+    >(
+      mediaTopics.map((topic) => {
+        const info = this.parseMediaTitle(topic.title);
+        const titles = this.expandMediaTitles(info.title);
+        return [topic, { info, titles }];
+      }),
     );
+
+    const allTitles = [...expansionByTopic.values()].flatMap((v) => v.titles);
+    const existingMediaIdByKey = await this.loadExistingMediaIds(allTitles);
 
     const resolvedMediaByKey = new Map<string, FilmbaratokMedia>();
 
     for (const topic of mediaTopics) {
-      const info = mediaInfoByTopic.get(topic)!;
+      const { info, titles } = expansionByTopic.get(topic)!;
       topic.isSpoiler = info.isSpoiler;
       topic.subtitle = info.subtitle || null;
 
-      const key = this.normalizeMediaKey(info.title);
-
-      let media = resolvedMediaByKey.get(key);
-      if (!media) {
-        const existingId = existingMediaIdByKey.get(key);
-        media = this.mediaRepo.create({ title: info.title, id: existingId });
-        resolvedMediaByKey.set(key, media);
-      }
-
-      topic.media = media;
+      topic.medias = titles.map((title) => {
+        const key = this.normalizeMediaKey(title);
+        let media = resolvedMediaByKey.get(key);
+        if (!media) {
+          const existingId = existingMediaIdByKey.get(key);
+          media = this.mediaRepo.create({ title, id: existingId });
+          resolvedMediaByKey.set(key, media);
+        }
+        return media;
+      });
     }
 
     await this.mediaRepo.save([...resolvedMediaByKey.values()]);
@@ -165,12 +205,17 @@ export abstract class FilmbaratokContentBaseParser {
     );
     const subtitle = subtitleParts.join(' ');
 
+    title = this.removePodcastNoise(title);
+
     // Clear empty brackets
     title = title
       .replace(/\s{2,}/g, ' ')
       .replace(/[-\s]+$/, '')
       .replace(/[([]\s*[)\]]/g, '')
       .trim();
+
+    // Fix typos and set canonical title for better media sync
+    title = this.resolveCanonicalMediaTitle(title);
 
     if (isSpoiler)
       console.log(
@@ -182,6 +227,35 @@ export abstract class FilmbaratokContentBaseParser {
       subtitle,
       isSpoiler,
     };
+  }
+
+  /**
+   * Removes unwanted noise or patterns typical to podcast titles from the given string.
+   * Cleans up the title by applying a set of predefined patterns and trims any extraneous whitespace.
+   *
+   * @param {string} rawTitle - The original podcast title that needs to be cleaned.
+   * @return {string} - The cleaned and noise-free podcast title.
+   */
+  protected removePodcastNoise(rawTitle: string): string {
+    let title = rawTitle;
+
+    for (const pattern of PODCAST_NOISE_PATTERNS) {
+      title = title.replace(pattern, '');
+    }
+
+    return title.trim();
+  }
+
+  /**
+   * Resolves the canonical media title for a given title by normalizing the input and looking it up in a predefined alias map.
+   * If no match is found, the original title is returned.
+   *
+   * @param title The media title to be resolved.
+   * @return The canonical media title if a match is found, otherwise the original title.
+   */
+  protected resolveCanonicalMediaTitle(title: string): string {
+    const normalizedKey = this.normalizeMediaKey(title);
+    return MEDIA_TITLE_ALIASES_LOOKUP.get(normalizedKey) ?? title;
   }
 
   /**
