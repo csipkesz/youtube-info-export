@@ -13,26 +13,7 @@ import {
 import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-
-const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
-  {
-    pattern: /Filmb[aá]r[aá]tok\s+Expressz/i,
-    category: FilmbaratokCategory.EXPRESS,
-  },
-  {
-    pattern: /Filmbarátok\s+audiokommentár/i,
-    category: FilmbaratokCategory.AUDIO_COMMENTARY,
-  },
-  {
-    pattern: /Filmbarátok\s+z[aá]rt/i,
-    category: FilmbaratokCategory.ON_SITE,
-  },
-  { pattern: /Filmbarátok\s+játszanak/i, category: FilmbaratokCategory.GAME },
-  {
-    pattern: /Filmbarátok\s+Podcast\s+#\d+/i,
-    category: FilmbaratokCategory.PODCAST,
-  },
-];
+import { CATEGORY_RULES } from '../filmbaratok.constants';
 
 /**
  * Megoldandó összevont topic-media:
@@ -51,7 +32,6 @@ const CATEGORY_RULES: { pattern: RegExp; category: FilmbaratokCategory }[] = [
  *
  * Megoldandó problémák:
  * - Egy topic, több media
- * - Tmdb media 6 hónapos kötelező szinkron tmdbUpdate alapján
  * - contansokat kivinni fájlokba mert kezdenek nagyok lenni
  */
 
