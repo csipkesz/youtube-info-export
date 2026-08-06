@@ -9,10 +9,7 @@ import {
   NON_MEDIA_TOPICS,
   NON_MEDIA_TOPICS_EXCEPTION,
 } from '../../filmbaratok.constants';
-
-export interface FilmbaratokContentParserMaps {
-  persons: Map<string, FilmbaratokPerson>;
-}
+import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
 
 interface MediaTitleInfo {
   title: string;

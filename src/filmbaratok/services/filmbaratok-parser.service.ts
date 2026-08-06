@@ -52,9 +52,9 @@ export class FilmbaratokParserService implements OnModuleInit {
 
   onModuleInit() {
     // this.syncYoutubeChannelWithVideos();
-    this.parseVideosFromDb().then(() => {
-      this.parseMediaWithMovieDatabase();
-    });
+    // this.parseVideosFromDb().then(() => {
+    //   this.parseMediaWithMovieDatabase();
+    // });
   }
 
   /**

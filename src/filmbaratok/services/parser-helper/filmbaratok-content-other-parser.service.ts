@@ -1,14 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import {
-  FilmbaratokContentBaseParser,
-  FilmbaratokContentParserMaps,
-} from './filmbaratok-content-base-parser.abstract';
+import { FilmbaratokContentBaseParser } from './filmbaratok-content-base-parser.abstract';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { Repository } from 'typeorm';
 import { FilmbaratokPerson } from 'src/filmbaratok/entities/filmbaratok-person.entity';
 import { YoutubeVideo } from '../../../youtube/entities/youtube-video.entity';
 import { FilmbaratokContent } from '../../entities/filmbaratok-content.entity';
+import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
 
 @Injectable()
 export class FilmbaratokContentOtherParserService extends FilmbaratokContentBaseParser {

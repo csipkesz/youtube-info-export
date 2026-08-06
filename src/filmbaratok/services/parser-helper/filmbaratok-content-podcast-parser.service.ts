@@ -1,14 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import {
-  FilmbaratokContentBaseParser,
-  FilmbaratokContentParserMaps,
-} from './filmbaratok-content-base-parser.abstract';
+import { FilmbaratokContentBaseParser } from './filmbaratok-content-base-parser.abstract';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FilmbaratokMedia } from '../../entities/filmbaratok-media.entity';
 import { Repository } from 'typeorm';
 import { YoutubeVideo } from '../../../youtube/entities/youtube-video.entity';
 import { FilmbaratokContent } from '../../entities/filmbaratok-content.entity';
 import { FilmbaratokPerson } from '../../entities/filmbaratok-person.entity';
+import { FilmbaratokContentParserMaps } from '../../interfaces/filmbaratok-content-parser-maps.interface';
 
 /**
  * Persons have similar name but separated by some sign.
