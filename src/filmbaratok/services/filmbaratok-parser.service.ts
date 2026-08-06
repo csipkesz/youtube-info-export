@@ -6,14 +6,12 @@ import { FilmbaratokContent } from '../entities/filmbaratok-content.entity';
 import { In, Repository } from 'typeorm';
 import { FilmbaratokPerson } from '../entities/filmbaratok-person.entity';
 import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
-import {
-  FilmbaratokParserHelperService,
-  TmdbSyncReport,
-} from './parser-helper/filmbaratok-parser-helper.service';
+import { FilmbaratokParserHelperService } from './parser-helper/filmbaratok-parser-helper.service';
 import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { CATEGORY_RULES } from '../filmbaratok.constants';
+import { TmdbSyncReport } from '../interfaces/tmdb-sync-report.interface';
 
 /**
  * Megoldandó összevont topic-media:

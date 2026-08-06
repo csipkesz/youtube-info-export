@@ -12,6 +12,7 @@ import {
   TmdbSearchItem,
   TmdbSerieResult,
 } from '../../sub/tmdb/tmdb.types';
+import { TmdbSyncReport } from '../../interfaces/tmdb-sync-report.interface';
 
 interface TmdbMediaPatch {
   tmdbId: number;
@@ -21,23 +22,6 @@ interface TmdbMediaPatch {
   backdropPath: string | null;
   posterPath: string | null;
   releaseDate: Date | null;
-}
-
-export interface TmdbMediaNotFoundEntry {
-  id: string;
-  title: string;
-}
-
-export interface TmdbMediaAmbiguousEntry {
-  id: string;
-  title: string;
-  lastScore: number;
-  results: Awaited<ReturnType<TmdbService['searchMulti']>>;
-}
-
-export interface TmdbSyncReport {
-  mediaWithoutResult: TmdbMediaNotFoundEntry[];
-  mediaWithMoreResultWithoutFind: TmdbMediaAmbiguousEntry[];
 }
 
 @Injectable()
