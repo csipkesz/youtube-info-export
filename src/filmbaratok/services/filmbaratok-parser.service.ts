@@ -30,7 +30,6 @@ import { TmdbSyncReport } from '../interfaces/tmdb-sync-report.interface';
  *
  * Megoldandó problémák:
  * - Egy topic, több media
- * - contansokat kivinni fájlokba mert kezdenek nagyok lenni
  */
 
 @Injectable()
