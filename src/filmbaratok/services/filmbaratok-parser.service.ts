@@ -3,7 +3,7 @@ import { YoutubeChannelService } from '../../youtube/youtube-channel.service';
 import { YoutubeVideo } from '../../youtube/entities/youtube-video.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FilmbaratokContent } from '../entities/filmbaratok-content.entity';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Not, Repository } from 'typeorm';
 import { FilmbaratokPerson } from '../entities/filmbaratok-person.entity';
 import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
 import { FilmbaratokParserHelperService } from './parser-helper/filmbaratok-parser-helper.service';
@@ -31,7 +31,9 @@ export class FilmbaratokParserService implements OnModuleInit {
   onModuleInit() {
     // this.syncYoutubeChannelWithVideos();
     // this.parseVideosFromDb().then(() => {
-    //   this.parseMediaWithMovieDatabase();
+    //   this.parseMediaWithMovieDatabase({
+    //     onlyKnownMedia: true,
+    //   });
     // });
   }
 
@@ -81,13 +83,19 @@ export class FilmbaratokParserService implements OnModuleInit {
    *
    * @return {Promise<void>} A promise that resolves when the media parsing and report generation are complete.
    */
-  async parseMediaWithMovieDatabase(): Promise<void> {
+  async parseMediaWithMovieDatabase(
+    options: { onlyKnownMedia?: boolean } = {},
+  ): Promise<void> {
     const report: TmdbSyncReport = {
       mediaWithoutResult: [],
       mediaWithMoreResultWithoutFind: [],
     };
 
-    const listOfMedia = await this.mediaRepo.find();
+    const listOfMedia = await this.mediaRepo.find({
+      where: {
+        tmdbId: options.onlyKnownMedia ? Not(IsNull()) : undefined,
+      },
+    });
 
     const batchSize = 70;
     for (let i = 0; i < listOfMedia.length; i += batchSize) {

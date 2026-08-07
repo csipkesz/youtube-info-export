@@ -1,4 +1,5 @@
 import { Expose, Type } from 'class-transformer';
+import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
 
 export class FilmbaratokMediaIndexItemDto {
   @Expose()
@@ -27,6 +28,9 @@ export class FilmbaratokMediaIndexItemContent {
 
   @Expose()
   title: string;
+
+  @Expose()
+  category: FilmbaratokCategory;
 
   @Expose()
   youtubeId: string;

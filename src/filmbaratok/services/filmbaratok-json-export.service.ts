@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FilmbaratokMedia } from '../entities/filmbaratok-media.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import {
   FilmbaratokMediaIndexItemContent,
   FilmbaratokMediaIndexItemDto,
@@ -24,7 +24,27 @@ export class FilmbaratokJsonExportService {
   async exportDbToJson() {
     console.time('Exporting DB to JSON');
     await this.exportMediaIndex();
+    await this.exportBackdropImages();
     console.timeEnd('Exporting DB to JSON');
+  }
+
+  private async exportBackdropImages() {
+    const medias = await this.mediaRepo.find({
+      select: {
+        id: true,
+        backdropPath: true,
+      },
+      where: {
+        backdropPath: Not(IsNull()),
+        tmdbId: Not(IsNull()),
+      },
+    });
+
+    const backdropPaths = medias
+      .map((media) => media.backdropPath)
+      .filter(Boolean);
+
+    await this.saveDataToJson(backdropPaths, 'data/backdrops');
   }
 
   private async exportMediaIndex() {
@@ -55,6 +75,7 @@ export class FilmbaratokJsonExportService {
         contentItem.participants = topic.content.participants.map(
           (p) => p.name,
         );
+        contentItem.category = topic.content.category;
 
         return contentItem;
       });
