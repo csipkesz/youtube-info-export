@@ -45,9 +45,6 @@ export class FilmbaratokContentTopic extends BaseEntity {
   @JoinTable()
   medias: Relation<FilmbaratokMedia[]>;
 
-  @Column({ type: 'varchar', nullable: true })
-  mediaId: string | null;
-
   /* - Transient */
   isMedia: boolean;
 }
