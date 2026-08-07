@@ -6,9 +6,10 @@ import {
   FilmbaratokMediaIndexItemContent,
   FilmbaratokMediaIndexItemDto,
 } from '../dto/filmbaratok-media-index-item.dto';
-import { plainToClass } from 'class-transformer';
+import { plainToClass, plainToInstance } from 'class-transformer';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { FilmbaratokMediaReadDto } from '../dto/filmbaratok-media.dto';
 
 @Injectable()
 export class FilmbaratokJsonExportService {
@@ -25,6 +26,7 @@ export class FilmbaratokJsonExportService {
     console.time('Exporting DB to JSON');
     await this.exportMediaIndex();
     await this.exportBackdropImages();
+    await this.exportMediaDetails();
     console.timeEnd('Exporting DB to JSON');
   }
 
@@ -45,6 +47,29 @@ export class FilmbaratokJsonExportService {
       .filter(Boolean);
 
     await this.saveDataToJson(backdropPaths, 'data/backdrops');
+  }
+
+  private async exportMediaDetails() {
+    const medias = await this.mediaRepo.find({
+      relations: {
+        topics: {
+          content: {
+            participants: true,
+          },
+        },
+      },
+    });
+
+    const parsedMedias = medias.map((media) =>
+      plainToInstance(FilmbaratokMediaReadDto, media, {
+        excludeExtraneousValues: true,
+        strategy: 'excludeAll',
+      }),
+    );
+
+    for (const media of parsedMedias) {
+      await this.saveDataToJson(media, `data/medias/${media.id}`);
+    }
   }
 
   private async exportMediaIndex() {
