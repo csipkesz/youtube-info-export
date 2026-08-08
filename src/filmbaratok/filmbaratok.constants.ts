@@ -166,7 +166,7 @@ export const MEDIA_TITLE_EXPANSION_ALIASES: Record<string, string[]> = {
 const MEDIA_TITLE_ALIASES: Record<string, string[]> = {
   ['Vaják']: ['the witcher', 'The Witcher / Vaják'],
   '12:01': ['12: 01'],
-  'A Lego-kaland': ['Lego kaland', 'Lego-kaland'],
+  'A Lego-kaland': ['A LEGO kaland', 'A Lego-kaland'],
   'Shin Gojira': ['Shin Godzilla'],
   '300': ['300 - Egy jubileumi kibeszélő'],
   '365 nap: Ma': ['365 nap : Ma'],
