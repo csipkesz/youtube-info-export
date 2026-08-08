@@ -10,12 +10,17 @@ import { plainToClass, plainToInstance } from 'class-transformer';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 import { FilmbaratokMediaReadDto } from '../dto/filmbaratok-media.dto';
+import { FilmbaratokContent } from '../entities/filmbaratok-content.entity';
+import { formatDate } from 'date-fns';
+import { FilmbaratokContentIndexItemDto } from '../dto/filmbaratok-content-index-item.dto';
 
 @Injectable()
 export class FilmbaratokJsonExportService {
   constructor(
     @InjectRepository(FilmbaratokMedia)
     private readonly mediaRepo: Repository<FilmbaratokMedia>,
+    @InjectRepository(FilmbaratokContent)
+    private readonly contentRepo: Repository<FilmbaratokContent>,
   ) {}
 
   onModuleInit() {
@@ -24,9 +29,12 @@ export class FilmbaratokJsonExportService {
 
   async exportDbToJson() {
     console.time('Exporting DB to JSON');
-    await this.exportMediaIndex();
     await this.exportBackdropImages();
+
+    await this.exportMediaIndex();
     await this.exportMediaDetails();
+
+    await this.exportContentIndex();
     console.timeEnd('Exporting DB to JSON');
   }
 
@@ -47,6 +55,37 @@ export class FilmbaratokJsonExportService {
       .filter(Boolean);
 
     await this.saveDataToJson(backdropPaths, 'data/backdrops');
+  }
+
+  private async exportContentIndex() {
+    const contents = await this.contentRepo.find({
+      relations: {
+        participants: true,
+        topics: true,
+      },
+    });
+
+    const contentsIndex: FilmbaratokContentIndexItemDto[] = contents.map(
+      (content) => {
+        const participantNames = content.participants.map((p) => p.name);
+        const releaseDateString = formatDate(content.releaseDate, 'yyyy-MM-dd');
+
+        return plainToInstance(
+          FilmbaratokContentIndexItemDto,
+          {
+            ...content,
+            participants: participantNames,
+            releaseDate: releaseDateString,
+          },
+          {
+            excludeExtraneousValues: true,
+            strategy: 'excludeAll',
+          },
+        );
+      },
+    );
+
+    await this.saveDataToJson(contentsIndex, 'index/contents');
   }
 
   private async exportMediaDetails() {
@@ -101,6 +140,8 @@ export class FilmbaratokJsonExportService {
           (p) => p.name,
         );
         contentItem.category = topic.content.category;
+        contentItem.isSpoiler = topic.isSpoiler;
+        contentItem.subtitle = topic.subtitle;
 
         return contentItem;
       });

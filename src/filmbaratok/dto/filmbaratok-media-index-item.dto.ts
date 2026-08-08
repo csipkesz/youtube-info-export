@@ -30,6 +30,9 @@ export class FilmbaratokMediaIndexItemContent {
   title: string;
 
   @Expose()
+  subtitle: string | null;
+
+  @Expose()
   category: FilmbaratokCategory;
 
   @Expose()
@@ -40,4 +43,7 @@ export class FilmbaratokMediaIndexItemContent {
 
   @Expose()
   participants: string[];
+
+  @Expose()
+  isSpoiler: boolean;
 }
