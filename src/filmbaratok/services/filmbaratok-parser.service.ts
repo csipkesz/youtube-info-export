@@ -85,7 +85,7 @@ export class FilmbaratokParserService implements OnModuleInit {
    */
   async parseMediaWithMovieDatabase(
     options: { onlyKnownMedia?: boolean } = {},
-  ): Promise<void> {
+  ): Promise<any> {
     const report: TmdbSyncReport = {
       mediaWithoutResult: [],
       mediaWithMoreResultWithoutFind: [],
@@ -117,7 +117,7 @@ export class FilmbaratokParserService implements OnModuleInit {
       `Media with more result and not found: ${report.mediaWithMoreResultWithoutFind.length}`,
     );
 
-    await this.createMovieDBReportData({
+    return await this.createMovieDBReportData({
       generatedAt: new Date().toISOString(),
       summary: {
         totalProcessed: listOfMedia.length,
@@ -150,6 +150,8 @@ export class FilmbaratokParserService implements OnModuleInit {
     } catch (err) {
       console.error('Failed to write JSON report file:', err);
     }
+
+    return data;
   }
 
   /**
