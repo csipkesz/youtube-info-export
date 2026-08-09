@@ -1,9 +1,9 @@
-import { Column, Entity, Index } from 'typeorm';
+import { Column, Entity } from 'typeorm';
 import { BaseEntity } from '../../common/db/entities/base.entity';
 
 @Entity()
 export class YoutubeChannel extends BaseEntity {
-  @Index()
+  // @Index()
   @Column({ unique: true })
   externalId: string;
 

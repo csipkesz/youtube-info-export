@@ -1,9 +1,9 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { YoutubeChannelService } from '../../youtube/youtube-channel.service';
 import { YoutubeVideo } from '../../youtube/entities/youtube-video.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FilmbaratokContent } from '../entities/filmbaratok-content.entity';
-import { In, IsNull, Not, Repository } from 'typeorm';
+import { FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm';
 import { FilmbaratokPerson } from '../entities/filmbaratok-person.entity';
 import { FilmbaratokCategory } from '../enums/filmbaratok-category.enum';
 import { FilmbaratokParserHelperService } from './parser-helper/filmbaratok-parser-helper.service';
@@ -14,7 +14,7 @@ import { CATEGORY_RULES } from '../filmbaratok.constants';
 import { TmdbSyncReport } from '../interfaces/tmdb-sync-report.interface';
 
 @Injectable()
-export class FilmbaratokParserService implements OnModuleInit {
+export class FilmbaratokParserService {
   private readonly youtubeChannelId = 'UCejqyGXi812VAJK5emU3OqQ';
 
   constructor(
@@ -27,15 +27,6 @@ export class FilmbaratokParserService implements OnModuleInit {
     @InjectRepository(FilmbaratokMedia)
     private readonly mediaRepo: Repository<FilmbaratokMedia>,
   ) {}
-
-  onModuleInit() {
-    // this.syncYoutubeChannelWithVideos();
-    // this.parseVideosFromDb().then(() => {
-    //   this.parseMediaWithMovieDatabase({
-    //     onlyKnownMedia: true,
-    //   });
-    // });
-  }
 
   /**
    * Synchronizes the YouTube channel with its videos, retrieves updated information, and optionally processes the videos.
@@ -85,19 +76,21 @@ export class FilmbaratokParserService implements OnModuleInit {
    */
   async parseMediaWithMovieDatabase(
     options: { onlyKnownMedia?: boolean } = {},
-  ): Promise<void> {
+  ): Promise<any> {
     const report: TmdbSyncReport = {
       mediaWithoutResult: [],
       mediaWithMoreResultWithoutFind: [],
     };
 
+    const mediaWhere: FindOptionsWhere<FilmbaratokMedia> = {};
+    if (options.onlyKnownMedia) {
+      mediaWhere.tmdbId = Not(IsNull());
+    }
     const listOfMedia = await this.mediaRepo.find({
-      where: {
-        tmdbId: options.onlyKnownMedia ? Not(IsNull()) : undefined,
-      },
+      where: mediaWhere,
     });
 
-    const batchSize = 70;
+    const batchSize = 60;
     for (let i = 0; i < listOfMedia.length; i += batchSize) {
       const batch = listOfMedia.slice(i, i + batchSize);
       await Promise.all(
@@ -117,7 +110,7 @@ export class FilmbaratokParserService implements OnModuleInit {
       `Media with more result and not found: ${report.mediaWithMoreResultWithoutFind.length}`,
     );
 
-    await this.createMovieDBReportData({
+    return await this.createMovieDBReportData({
       generatedAt: new Date().toISOString(),
       summary: {
         totalProcessed: listOfMedia.length,
@@ -150,6 +143,8 @@ export class FilmbaratokParserService implements OnModuleInit {
     } catch (err) {
       console.error('Failed to write JSON report file:', err);
     }
+
+    return data;
   }
 
   /**

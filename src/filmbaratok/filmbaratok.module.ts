@@ -13,6 +13,7 @@ import { FilmbaratokContentAudioCommentaryParserService } from './services/parse
 import { FilmbaratokContentTopic } from './entities/filmbaratok-content-topic.entity';
 import { TmdbModule } from './sub/tmdb/tmdb.module';
 import { FilmbaratokJsonExportService } from './services/filmbaratok-json-export.service';
+import { FilmbaratokController } from './filmbaratok.controller';
 
 @Module({
   imports: [
@@ -34,5 +35,6 @@ import { FilmbaratokJsonExportService } from './services/filmbaratok-json-export
     FilmbaratokContentAudioCommentaryParserService,
     FilmbaratokJsonExportService,
   ],
+  controllers: [FilmbaratokController],
 })
 export class FilmbaratokModule {}
