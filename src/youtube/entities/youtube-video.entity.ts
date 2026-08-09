@@ -1,4 +1,4 @@
-import { Column, Entity, Index, ManyToOne, type Relation } from 'typeorm';
+import { Column, Entity, ManyToOne, type Relation } from 'typeorm';
 import { BaseEntity } from '../../common/db/entities/base.entity';
 import { YoutubeChannel } from './youtube-channel.entity';
 
@@ -10,7 +10,7 @@ export class YoutubeVideo extends BaseEntity {
   @ManyToOne(() => YoutubeChannel, { onDelete: 'CASCADE' })
   youtubeChannel: Relation<YoutubeChannel>;
 
-  @Index({ unique: true })
+  // @Index({ unique: true })
   @Column()
   resourceVideoId: string;
 
