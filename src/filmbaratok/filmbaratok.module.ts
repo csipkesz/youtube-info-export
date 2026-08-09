@@ -12,6 +12,7 @@ import { FilmbaratokContentExpressParserService } from './services/parser-helper
 import { FilmbaratokContentAudioCommentaryParserService } from './services/parser-helper/filmbaratok-content-audio-commentary-parser.service';
 import { FilmbaratokContentTopic } from './entities/filmbaratok-content-topic.entity';
 import { TmdbModule } from './sub/tmdb/tmdb.module';
+import { FilmbaratokJsonExportService } from './services/filmbaratok-json-export.service';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { TmdbModule } from './sub/tmdb/tmdb.module';
     FilmbaratokContentOtherParserService,
     FilmbaratokContentExpressParserService,
     FilmbaratokContentAudioCommentaryParserService,
+    FilmbaratokJsonExportService,
   ],
 })
 export class FilmbaratokModule {}
