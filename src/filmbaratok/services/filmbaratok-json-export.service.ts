@@ -24,7 +24,7 @@ export class FilmbaratokJsonExportService {
   ) {}
 
   onModuleInit() {
-    this.exportDbToJson();
+    // this.exportDbToJson();
   }
 
   async exportDbToJson() {
