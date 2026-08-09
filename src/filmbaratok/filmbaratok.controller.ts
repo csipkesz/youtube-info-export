@@ -1,11 +1,15 @@
 import { Controller, Post, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { FilmbaratokParserService } from './services/filmbaratok-parser.service';
+import { FilmbaratokJsonExportService } from './services/filmbaratok-json-export.service';
 
 @Controller('filmbaratok')
 @ApiTags('Filmbaratok')
 export class FilmbaratokController {
-  constructor(protected readonly parserService: FilmbaratokParserService) {}
+  constructor(
+    protected readonly parserService: FilmbaratokParserService,
+    protected readonly jsonExportService: FilmbaratokJsonExportService,
+  ) {}
 
   @Post('sync-youtube-channel')
   @ApiOperation({
@@ -37,5 +41,14 @@ export class FilmbaratokController {
     return await this.parserService.parseMediaWithMovieDatabase({
       onlyKnownMedia: onlyKnownMedia === 'true',
     });
+  }
+
+  @Post('export-json')
+  @ApiOperation({
+    summary: 'Export all data to JSON file',
+  })
+  async exportDataToJson() {
+    await this.jsonExportService.clearExportFolder();
+    await this.jsonExportService.exportDbToJson();
   }
 }

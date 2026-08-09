@@ -23,8 +23,11 @@ export class FilmbaratokJsonExportService {
     private readonly contentRepo: Repository<FilmbaratokContent>,
   ) {}
 
-  onModuleInit() {
-    // this.exportDbToJson();
+  async clearExportFolder() {
+    const dataFolderPath = path.resolve('data');
+
+    await fs.access(dataFolderPath);
+    await fs.rm(dataFolderPath, { recursive: true, force: true });
   }
 
   async exportDbToJson() {
