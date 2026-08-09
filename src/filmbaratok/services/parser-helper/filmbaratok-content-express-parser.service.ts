@@ -30,18 +30,23 @@ export class FilmbaratokContentExpressParserService extends FilmbaratokContentBa
       youtubeVideo.description,
     );
 
-    // const mappedPersonNames: string[] = Array.from(maps.persons.keys());
-    // const personNames = this.resolvePersonNames(youtubeVideo.description, {
-    //   ytVideoId: youtubeVideo.resourceVideoId,
-    //   knownPersonNames: mappedPersonNames,
-    // });
-    //
-    // const participants: FilmbaratokPerson[] = [];
-    // for (const name of personNames) {
-    //   participants.push(await this.resolvePersonByName(name, maps.persons));
-    // }
+    const descriptionContainsParticipants =
+      youtubeVideo.description.includes('Beszélgetnek:');
+    if (descriptionContainsParticipants) {
+      const mappedPersonNames: string[] = Array.from(maps.persons.keys());
+      const personNames = this.resolvePersonNames(youtubeVideo.description, {
+        ytVideoId: youtubeVideo.resourceVideoId,
+        knownPersonNames: mappedPersonNames,
+      });
 
-    // contentEntity.participants = participants;
+      const participants: FilmbaratokPerson[] = [];
+      for (const name of personNames) {
+        participants.push(await this.resolvePersonByName(name, maps.persons));
+      }
+
+      contentEntity.participants = participants;
+    }
+
     contentEntity.topics = await this.resolveTopicsByRawTitles(topicTitles);
 
     return contentEntity;
