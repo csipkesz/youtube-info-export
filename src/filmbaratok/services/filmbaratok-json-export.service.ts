@@ -26,8 +26,16 @@ export class FilmbaratokJsonExportService {
   async clearExportFolder() {
     const dataFolderPath = path.resolve('data');
 
-    await fs.access(dataFolderPath);
-    await fs.rm(dataFolderPath, { recursive: true, force: true });
+    try {
+      await fs.access(dataFolderPath);
+      await fs.rm(dataFolderPath, { recursive: true, force: true });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('ENOENT')) {
+        return;
+      }
+
+      throw error;
+    }
   }
 
   async exportDbToJson() {
@@ -39,6 +47,24 @@ export class FilmbaratokJsonExportService {
 
     await this.exportContentIndex();
     console.timeEnd('Exporting DB to JSON');
+  }
+
+  async saveDataToJson(data: any, subPath: string) {
+    const outputDir = path.join(process.cwd(), 'data');
+    const filePath = path.join(outputDir, `${subPath}.json`);
+
+    const targetDir = path.dirname(filePath);
+
+    try {
+      // A targetDir-re hívjuk meg a rekurzív hozást, így a tetszőlegesen mély almappák is létrejönnek
+      await fs.mkdir(targetDir, { recursive: true });
+
+      await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+
+      console.log(`Data successfully saved to ${filePath}`);
+    } catch (err) {
+      console.error('Failed to write JSON report file:', err);
+    }
   }
 
   private async exportBackdropImages() {
@@ -158,23 +184,5 @@ export class FilmbaratokJsonExportService {
     }
 
     await this.saveDataToJson(listOfMediaIndex, 'index/medias');
-  }
-
-  async saveDataToJson(data: any, subPath: string) {
-    const outputDir = path.join(process.cwd(), 'data');
-    const filePath = path.join(outputDir, `${subPath}.json`);
-
-    const targetDir = path.dirname(filePath);
-
-    try {
-      // A targetDir-re hívjuk meg a rekurzív hozást, így a tetszőlegesen mély almappák is létrejönnek
-      await fs.mkdir(targetDir, { recursive: true });
-
-      await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
-
-      console.log(`Data successfully saved to ${filePath}`);
-    } catch (err) {
-      console.error('Failed to write JSON report file:', err);
-    }
   }
 }
