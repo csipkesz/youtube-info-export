@@ -14,6 +14,7 @@ import {
 } from '../../sub/tmdb/tmdb.types';
 import { TmdbSyncReport } from '../../interfaces/tmdb-sync-report.interface';
 import { TmdbFilmbaratokMediaPatch } from '../../interfaces/tmdb-filmbaratok-media-patch.interface';
+import { MEDIA_TITLE_TMDB_SEARCH_ALIAS } from '../../filmbaratok.constants';
 
 @Injectable()
 export class FilmbaratokParserHelperService {
@@ -75,9 +76,10 @@ export class FilmbaratokParserHelperService {
       media.title,
     );
 
-    const results = await this.tmdbService.searchMulti(mediaTitle);
+    const searchText = MEDIA_TITLE_TMDB_SEARCH_ALIAS[mediaTitle] || mediaTitle;
+    const results = await this.tmdbService.searchMulti(searchText);
     console.log(
-      `Processing ${media.title} (${mediaYear ?? 'Unknown Year'}) - Found ${results.total_results} results`,
+      `Processing ${media.title} - Found ${results.total_results} results with ${searchText}`,
     );
 
     if (results.total_results === 0) {

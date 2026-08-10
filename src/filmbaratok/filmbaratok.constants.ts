@@ -117,6 +117,7 @@ export const NON_MEDIA_TOPICS = [
   'Felveztő',
   'Sztárszignál',
   'Emberkísérlet az "Öt éjjel Freddy Pizzázójában 2" után',
+  'Decemberi programunk',
 ];
 
 /**
@@ -170,6 +171,33 @@ const MEDIA_TITLE_ALIASES: Record<string, string[]> = {
   'Shin Gojira': ['Shin Godzilla'],
   '300': ['300 - Egy jubileumi kibeszélő'],
   '365 nap: Ma': ['365 nap : Ma'],
+  ['Daredevil: Újjászületés']: [
+    'Daredevil: Újjászületés',
+    'Daredevil - Újjászületés',
+  ],
+  ['Dune: Második rész']: ['Dűne 2'],
+  ['A törvényenkívüli Josey Wales']: ['A törvényenkívüli Josie Wales'],
+  ['Guillermo del Toro: Pinokkió']: ['Pinokkió [2022, del Toro]'],
+  'The Expendables 3': ['Expandables 3'],
+  'Nicht nachmachen!': ['Nicht nachmachen (Német áltudományos műsor)'],
+  ['Mentőexpedíció']: ['A mentőexpedíció'],
+};
+
+/**
+ * When we search tmdb at multi endpoint, change the search query text.
+ */
+export const MEDIA_TITLE_TMDB_SEARCH_ALIAS: Record<string, string> = {
+  ['Támadás a Fehér Ház ellen 3. - A védangyal bukása']:
+    'Támadás a fehér ház ellen 3.',
+  ['The Texas Chainsaw Massacre (2003) / A texasi láncfűrészes -Az utolsó esély']:
+    'The Texas Chainsaw Massacre',
+  ['Major Fraud - Who Wants To Be A Millionaire']: 'Major Fraud',
+  ['Saló, avagy a Sodoma 120 napja']: 'Salò o le 120 giornate di Sodoma',
+  ['Az öt bajtárs / Da 5 Bloods']: 'Az 5 bajtárs',
+  ['Indiana Jones és a kristálykoponya királysága']:
+    'Indiana Jones and the Kingdom of the Crystal Skull',
+  ['Csiszolatlan gyémánt / Uncut Gems']: 'Uncut Gems',
+  ['Üsd, vágd, fozizzál / Shaolin foci']: 'Shaolin foci',
 };
 
 /**
