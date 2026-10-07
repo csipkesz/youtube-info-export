@@ -33,6 +33,10 @@ export const CATEGORY_RULES: {
     pattern: /Filmbarátok\s+Podcast\s+#\d+/i,
     category: FilmbaratokCategory.PODCAST,
   },
+  {
+    pattern: /Filmb[aá]r[aá]tok\s+mémek/i,
+    category: FilmbaratokCategory.MEME,
+  },
 ];
 
 /**

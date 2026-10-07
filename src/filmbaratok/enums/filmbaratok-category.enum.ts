@@ -4,5 +4,6 @@ export enum FilmbaratokCategory {
   EXPRESS = 'EXPRESS',
   AUDIO_COMMENTARY = 'AUDIO_COMMENTARY',
   GAME = 'GAME',
+  MEME = 'MEME',
   OTHER = 'OTHER',
 }
