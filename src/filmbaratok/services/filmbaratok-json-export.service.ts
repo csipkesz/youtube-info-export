@@ -46,6 +46,8 @@ export class FilmbaratokJsonExportService {
     await this.exportMediaDetails();
 
     await this.exportContentIndex();
+
+    await this.exportMeta();
     console.timeEnd('Exporting DB to JSON');
   }
 
@@ -65,6 +67,10 @@ export class FilmbaratokJsonExportService {
     } catch (err) {
       console.error('Failed to write JSON report file:', err);
     }
+  }
+
+  private async exportMeta() {
+    await this.saveDataToJson({ lastUpdatedAt: Date.now() }, 'meta');
   }
 
   private async exportBackdropImages() {
