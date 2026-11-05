@@ -7,7 +7,7 @@ export class FilmbaratokMedia extends BaseEntity {
   @Column({ unique: true })
   title: string;
 
-  @Column({ type: 'varchar', length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   originalTitle: string | null;
 
   @ManyToMany(() => FilmbaratokContentTopic, (topic) => topic.medias, {
